@@ -1,5 +1,8 @@
 #include "Board.h"
 
+#define SCREEN_WIDTH 800
+#define SCREEN_HEIGHT 600
+
 using namespace std;
 
 //a constructor for the Board class if height, width, and wraparound options are chosen
@@ -47,7 +50,7 @@ void Board::randomize(double ratio)
 	{
 		for (int c = 0; c < width; c++)
 		{
-			if (((double)rand()/RAND_MAX) <= ratio) 
+			if (((double)rand()/RAND_MAX) <= ratio)
 			{
 				toggle(r, c);
 			}
@@ -216,13 +219,14 @@ void Board::addPattern(string fileName, int x, int y)
 
 	heightOfSaved = fs_atoi(in);
 	widthOfSaved = fs_atoi(in);
+
 	//initialize new patternMatrix
 	bool **patternMatrix = new bool *[heightOfSaved];
 	for(int i = 0; i < heightOfSaved; i++)
 	{
 		patternMatrix[i] = new bool[widthOfSaved];
 	}
-
+	std::cout << "Created new pattern matrix" << std::endl;
 	//store file values into the patternMatrix
 	int row = 0;
 	while(getline(in, line))
@@ -233,15 +237,13 @@ void Board::addPattern(string fileName, int x, int y)
 		}
 		row++;
 	}
-	// 4/3/17 - JJK - Bad logic here - now fixed
+
 	//check if the pattern will fit in the pattern matrix
 	if((heightOfSaved + y) > height || (widthOfSaved + x) > width)
 	{
 		cerr << "Saved Pattern is larger than board" << endl;
 	}
-
-	// pretty sure there's a bug here - 4/6/17 JJK
-	// x is supposed to be horizontal
+	std::cout << "Pattern successfully loaded" << std::endl;
 	// used to access the y component of the matrix
 	for(int i = 0; i < heightOfSaved; i++)
 		for(int j = 0; j < widthOfSaved; j++)
@@ -318,9 +320,95 @@ string Board::getSurvivalRule()
 	return set2rule(survivalRule);
 }
 
-//Used for testing purposes
-/*
-int main()
+//TODO: add zoom
+bool filled = false;
+void Board::render(SDL_Renderer * renderer, SDL_Rect * renderArea, SDL_Point * cursor)
+{
+	SDL_Color consoleGreen = {0, 255, 0};
+	SDL_Color highlight = {255, 255, 255};
+	SDL_Color background = {0, 0, 0};
+	SDL_Color * cellColor;
+	int cellWidth = renderArea->w / width;
+	int cellHeight = renderArea->h / height;
+	for (int i = 0; i < height; i++)
+	{
+		for (int j = 0; j < width; j++)
+		{
+			int x = renderArea->x + cellWidth * j;
+			int y = renderArea->y + cellHeight * i;
+			SDL_Rect cellRect = {x, y, cellWidth, cellHeight};
+			if (!filled)
+			{
+				cellRect.w = cellWidth - 1;
+				cellRect.h = cellWidth - 1;
+			}
+
+			cellColor = &consoleGreen;
+			if ((cursor->x >= x && cursor->x <= (x + cellWidth-1) ) && (cursor->y >= y && cursor->y <= (y + cellHeight - 1)))
+			{
+				cellColor = &highlight;
+			}
+			if (!matrix[i][j])
+			{
+				cellColor = &background;
+			}
+			SDL_SetRenderDrawColor(renderer, cellColor->r, cellColor->g, cellColor->b, cellColor->a);
+			if (!filled)
+			SDL_RenderFillRect(renderer, &cellRect);
+		}
+	}
+	SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
+}
+
+SDL_Window * gWindow = NULL;
+SDL_Renderer * gRenderer = NULL;
+
+bool init()
+{
+	//Initialization flag
+	bool success = true;
+
+	//Initialize SDL
+	if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
+	{
+		printf( "SDL could not initialize! SDL Error: %s\n", SDL_GetError() );
+		success = false;
+	}
+	else
+	{
+		//Set texture filtering to linear
+		if( !SDL_SetHint( SDL_HINT_RENDER_SCALE_QUALITY, "1" ) )
+		{
+			printf( "Warning: Linear texture filtering not enabled!" );
+		}
+
+		//Create window
+		gWindow = SDL_CreateWindow( "Board Test", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN );
+		if( gWindow == NULL )
+		{
+			printf( "Window could not be created! SDL Error: %s\n", SDL_GetError() );
+			success = false;
+		}
+		else
+		{
+			//Create renderer for window
+			gRenderer = SDL_CreateRenderer( gWindow, -1, SDL_RENDERER_ACCELERATED);
+			if( gRenderer == NULL )
+			{
+				printf( "Renderer could not be created! SDL Error: %s\n", SDL_GetError() );
+				success = false;
+			}
+			else
+			{
+				//Initialize renderer color
+				SDL_SetRenderDrawColor( gRenderer, 0, 0, 0, 0xFF );
+			}
+		}
+	}
+	return success;
+}
+
+int main(int argc, char** argv)
 {
 
 	int height;
@@ -332,17 +420,80 @@ int main()
 	cout << "Width of board: ";
 	cin >> width;
 
+	if (!init())
+	{
+		return -1;
+	}
+	SDL_Event * e = new SDL_Event();
+	SDL_RenderClear(gRenderer);
+	SDL_RenderPresent(gRenderer);
+	bool loop = true;
+
+	while (loop)
+	{
+		while (SDL_PollEvent(e) != 0)
+		{
+			if (e->type == SDL_QUIT)
+			{
+				return 0;
+			}
+			else if (e->type == SDL_MOUSEBUTTONDOWN)
+			{
+				loop = false;
+			}
+		}
+	}
+	loop = true;
+
+	SDL_Point pos = {100, 100};
+	SDL_Rect rect = {200, 100, 400, 400};
 	cout << "Add a board called test\n";
 	Board test(false, height, width);
 
 	cout << "Print out the matrix:\n";
 	test.printBoard();
+	SDL_RenderClear(gRenderer);
+	test.render(gRenderer, &rect, &pos);
+	SDL_RenderPresent(gRenderer);
 	cout << endl;
+	while (loop)
+	{
+		while (SDL_PollEvent(e) != 0)
+		{
+			if (e->type == SDL_QUIT)
+			{
+				return 0;
+			}
+			else if (e->type == SDL_MOUSEBUTTONDOWN)
+			{
+				loop = false;
+			}
+		}
+	}
+	loop = true;
 
 	cout << "Add a pattern called patterntest.txt and then print out the matrix\n";
-	test.addPattern("patterntest.txt", 1, 1);
+	test.addPattern("./boards/_smile.brd", 0, 0);
 	test.printBoard();
+	SDL_RenderClear(gRenderer);
+	test.render(gRenderer, &rect, &pos);
+	SDL_RenderPresent(gRenderer);
 	cout << endl;
+	while (loop)
+	{
+		while (SDL_PollEvent(e) != 0)
+		{
+			if (e->type == SDL_QUIT)
+			{
+				return 0;
+			}
+			else if (e->type == SDL_MOUSEBUTTONDOWN)
+			{
+				loop = false;
+			}
+		}
+	}
+	loop = true;
 
 	//test.getMatrix();
 	//cout << endl;
@@ -351,24 +502,75 @@ int main()
 	test.runIteration();
 
 	cout << "This is the matrix now\n";
+	SDL_RenderClear(gRenderer);
+	test.render(gRenderer, &rect, &pos);
+	SDL_RenderPresent(gRenderer);
 	test.printBoard();
 	cout << endl;
+	while (loop)
+	{
+		while (SDL_PollEvent(e) != 0)
+		{
+			if (e->type == SDL_QUIT)
+			{
+				return 0;
+			}
+			else if (e->type == SDL_MOUSEBUTTONDOWN)
+			{
+				loop = false;
+			}
+		}
+	}
+	loop = true;
 
 	test.runIteration(3);
 	cout << "This is the matrix after 3 runIterations\n";
+
+	SDL_RenderClear(gRenderer);
+	test.render(gRenderer, &rect, &pos);
+	SDL_RenderPresent(gRenderer);
 	test.printBoard();
 	cout << endl;
+
+
+	while (loop)
+	{
+		while (SDL_PollEvent(e) != 0)
+		{
+			if (e->type == SDL_QUIT)
+			{
+				return 0;
+			}
+			else if (e->type == SDL_MOUSEBUTTONDOWN)
+			{
+				loop = false;
+			}
+		}
+	}
+	loop = true;
 
 	cout << "Random Board\n";
 	test.randomize();
 	test.printBoard();
+	SDL_RenderClear(gRenderer);
+	test.render(gRenderer, &rect, &pos);
+	SDL_RenderPresent(gRenderer);
 	cout << endl;
-
-	while (true)
+	while (loop)
 	{
-		test.runIteration(100);
+		while (SDL_PollEvent(e) != 0)
+		{
+			if (e->type == SDL_QUIT)
+			{
+				return 0;
+			}
+			else if (e->type == SDL_MOUSEBUTTONDOWN)
+			{
+				loop = false;
+			}
+		}
 	}
+	loop = true;
 
     return 0;
 }
-*/
