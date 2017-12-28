@@ -1,113 +1,78 @@
 #include "Controller.h"
+#include <exception>
+#include <sstream>
 
-#define MAIN_MENU_HEIGHT 8
-#define MAIN_MENU_WIDTH 28
-#define BOARD_HEIGHT (termRow - STATUS_HEIGHT)
-#define BOARD_WIDTH termCol
-#define STATUS_HEIGHT 5
-#define STATUS_WIDTH termCol
-
-Controller::Controller()
+Controller::Controller(SDL_Window * window)
 {
-    int maxY = 0, maxX = 0;
-    getmaxyx(stdscr, maxY, maxX);
-    termRow = maxY;
-    termCol = maxX;
+	std::cerr << "controller constructor called\n";
+	if (window == NULL)
+	{
+		std::cerr << "WINDOW IS NULL";
+	}
+	this->mainRenderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+	if( mainRenderer == NULL )
+	{
+		std::cerr << "Renderer could not be created! SDL Error: " << SDL_GetError() << std::endl;
+	}
     //Set default speed to 25
     speed = 25;
-    //Create the menu and keep it in memory so we can load it faster later
-    ITEM **choices = new ITEM*[6];
-    choices[0] = new_item("Load a new board", "Load a new board");
-    choices[1] = new_item("Load a saved board", "Load a saved board");
-    choices[2] = new_item("Load a random board", "Load a random board");
-    choices[3] = new_item("Load the pattern editor", "Load the pattern editor");
-    choices[4] = new_item("Exit", "Exit");
-    choices[5] = NULL;
-	//Create the menu
-	mainMenu = new_menu(choices);
-    menu_opts_off(mainMenu, O_NONCYCLIC);
-    menu_opts_off(mainMenu, O_SHOWDESC);
-    //create the menu window
-    WINDOW *menuWin = newwin(MAIN_MENU_HEIGHT, MAIN_MENU_WIDTH,
-                                    termRow / 2 - MAIN_MENU_HEIGHT / 2, termCol / 2 - MAIN_MENU_WIDTH / 2);
-    //Allow use of arrow keys
-    keypad(menuWin, TRUE);
-    mainMenuPanel = new_panel(menuWin);
-    set_menu_win(mainMenu, menuWin);
-    //Create the menu subwindow
-    set_menu_sub(mainMenu, derwin(menuWin, 5, 25, 2, 1));
-    //Styling
-    set_menu_mark(mainMenu, ">");
-    printCenter(menuWin, "Main Menu", 1, 28);
-    box(menuWin, 0, 0);
+
+	int windowWidth, windowHeight;
+	SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+	std::cerr << windowWidth << " height: " << windowHeight << std::endl;
+
+
+	std::cerr << "Board pointer: " << this->boardPanel << std::endl;
+
+	this->boardPanel->x = 0;
+	this->boardPanel->y = 0;
+	this->boardPanel->w = windowWidth;
+	this->boardPanel->h = windowHeight * 5 / 6;
+
+	std::cerr << "Board panel: " << boardPanel->w << " " << boardPanel->h << std::endl;
+
+
+	this->statusPanel->x = 0;
+	this->statusPanel->y = windowHeight * 5 / 6;
+	this->statusPanel->w = windowWidth;
+	this->statusPanel->h = windowHeight / 6;
+
+	std::cerr << "Status panel: " << this->statusPanel->w << " " << this->statusPanel->h << std::endl;
+	std::cerr << "Status pointer: " << this->statusPanel << std::endl;
+	this->event = new SDL_Event();
+	this->mainColor = {0, 0xFF, 0};
+	this->bgColor = {0, 0, 0};
+	this->accentColor = {0xFF, 0xFF, 0xFF};
     state = menu;
+	this->mainFont = TTF_OpenFont("./assets/consola.ttf", 16);
 
 }
 
-/*Preconditions: win is a properly constructed window object
-                str is a properly constructed string object
-                row is an integer between 0 and the window height-1, inclusive
-                width is the width of the win
-Postconditions: prints str at row row in window win
-*/
-void Controller::printCenter(WINDOW *win, std::string str, int row, int width)
+void Controller::printPanelDimensions()
 {
-    int col = width / 2 - str.size() / 2;
-    mvwprintw(win, row, col, str.c_str());
+	std::cerr << "Print method called\n";
+	std::cerr << "Board panel: " << boardPanel->w << " " << boardPanel->h << std::endl;
+	std::cerr << "Board pointer: " << this->boardPanel << std::endl;
+	std::cerr << "Status panel: " << this->statusPanel->w << " " << this->statusPanel->h << std::endl;
+	std::cerr << "Status pointer: " << this->statusPanel << std::endl;
 }
-
 /*Postconditions: updates the terminal screen
 */
 void Controller::updateScreen()
 {
-    update_panels();
-    doupdate();
-}
-
-/*Postconditions: Returns an integer -1 through 4 corresponding to the user's
-                    menu choice
-*/
-int Controller::getMainMenuChoice()
-{
-	//Show the menu on the screen
-	post_menu(mainMenu);
-    show_panel(mainMenuPanel);
-    WINDOW *mainMenuWin = panel_window(mainMenuPanel);
-	wrefresh(mainMenuWin);
-    wchar_t ch;
-    //Loop until the user presses enter (10) or esc (27)
-	while((ch = wgetch(mainMenuWin)) != 10 && ch != 27)
-	{       switch(ch)
-	        {
-				case KEY_DOWN:
-					menu_driver(mainMenu, REQ_DOWN_ITEM);
-					break;
-				case KEY_UP:
-					menu_driver(mainMenu, REQ_UP_ITEM);
-					break;
-				default:
-					break;
-			}
-            wrefresh(mainMenuWin);
-	}
-    int choice = 0;
-    if(ch == 27)
-        choice = -1;
-    else
-        choice = item_index(current_item(mainMenu));
-    //hide the menu
-    unpost_menu(mainMenu);
-    hide_panel(mainMenuPanel);
-    updateScreen();
-    return choice;
+	std::cerr << "updating screen\n";
+	SDL_RenderPresent(mainRenderer);
 }
 
 /*Preconditions: wrapAround is true if the user wants to enable wrapAround
                 and false if the user does not
 Postconditions: creates a new board with the max possible height and width
 */
-void Controller::createNewBoard(bool wrapAround) {
-    createNewBoard(wrapAround, BOARD_HEIGHT, BOARD_WIDTH);
+void Controller::createNewBoard(bool wrapAround)
+{
+	//TODO: ACTUALLY CALCULATE THE MAXIMUM?
+	createNewBoard(wrapAround, 25, 40);
 }
 
 /*Preconditions: wrapAround is true if the user wants to enable wrapAround
@@ -120,27 +85,25 @@ Postconditions: creates a new board. If height or width are <= 0, sets it
 void Controller::createNewBoard(bool wrapAround, int height, int width)
 {
     //delete the old board if necessary
-    if(board != nullptr){
+	std::cerr << "creating new board\n";
+    if (board != NULL)
+    {
         delete board;
-        board = nullptr;
-        wclear(panel_window(boardPanel));
-        wclear(panel_window(statusPanel));
+        board = NULL;
+	    //TODO: possibly clear renderer here
     }
     //check the height and width and adjust if necessary
+	//TODO: is this still necessary?
+	/*
     width = (width > 0) ? width:1;
     width = (width <= BOARD_WIDTH-2) ? width:BOARD_WIDTH-2;
     height = (height > 0) ? height:1;
     height = (height <= BOARD_HEIGHT-2) ? height:BOARD_HEIGHT-2;
-    board = new Board(wrapAround, height, width);
-    //Create window for the board
-    WINDOW *boardWin = newwin(height+2, width+2, (BOARD_HEIGHT-height)/2-1, (BOARD_WIDTH-width)/2-1);
-    boardPanel = new_panel(boardWin);
-    box(boardWin, 0, 0);
-    //Create window for the bottom status area
-    WINDOW *statusWin = newwin(STATUS_HEIGHT, STATUS_WIDTH, BOARD_HEIGHT, 0);
-    statusPanel = new_panel(statusWin);
-    box(statusWin, 0, 0);
-    updateStatusWin();
+	*/
+	board = new Board(wrapAround, height, width);
+    SDL_RenderClear(mainRenderer);
+	renderStatusPanel();
+	renderBoard();
     updateScreen();
 }
 
@@ -149,6 +112,7 @@ Postconditions: Constructs a new board based on filename
                 Throws an error if the loaded board is bigger than the
                 max obard size
 */
+/*
 void Controller::createNewBoard(std::string filename)
 {
     //delete previous board if necessary
@@ -182,6 +146,7 @@ void Controller::createNewBoard(std::string filename)
     updateStatusWin();
     updateScreen();
 }
+*/
 
 /*Preconditions: ratio is a double >= 0
 Postconditions: Randomly chooses to toggle each cell of the board, based on ratio
@@ -189,20 +154,6 @@ Postconditions: Randomly chooses to toggle each cell of the board, based on rati
 void Controller::randomizeBoard(double ratio)
 {
     board->randomize(ratio);
-}
-
-/*Postconditions: returns terminal height
-*/
-int Controller::getTermRow()
-{
-    return termRow;
-}
-
-/*Postconditions: returns terminal width
-*/
-int Controller::getTermCol()
-{
-    return termCol;
 }
 
 /*Postconditions: returns controller speed
@@ -253,7 +204,7 @@ void Controller::setState(controlState newState)
 {
     state = newState;
     if(state != exiting)
-        updateStatusWin();
+        renderStatusPanel(statusPanel);
 }
 
 /*Preconditions: newSpeed is -1 or 1
@@ -286,23 +237,21 @@ void Controller::setSpeed(int newSpeed)
     if (speed+newSpeed < 1)
     {
         speed = 1;
-        updateStatusWin();
         return;
     }
     //make sure speed does not exceed 100000
     if (speed+newSpeed > 100000)
     {
         speed = 100000;
-        updateStatusWin();
         return;
     }
     speed += newSpeed;
-    updateStatusWin();
 }
 
 /*Postconditions: Updates the status windows, based on the current values of
                 height, width, state, iterations, birth, death, and speed
 */
+/*
 void Controller::updateStatusWin()
 {
     WINDOW* statusWin = panel_window(statusPanel);
@@ -328,8 +277,8 @@ void Controller::updateStatusWin()
         wprintw(statusWin, "%d", board->getDeaths());
         wprintw(statusWin, "\t");
 
-        /*speed variable is in iterations/second... make sure it is presented that
-        way to the user (i.e. don't divide by 1000 or anything) */
+        //speed variable is in iterations/second... make sure it is presented that
+        //way to the user (i.e. don't divide by 1000 or anything)
         wprintw(statusWin, "%d", speed);
 
         wprintw(statusWin, "\t");
@@ -339,87 +288,19 @@ void Controller::updateStatusWin()
     }
     mvwprintw(statusWin, 2, STATUS_WIDTH-15, "K: Keybindings");
     updateScreen();
-}
-
+} */
 /*Preconditions: message is a string object
 Postconditions: Prompts the user with message, and gets string input from the user
 */
 std::string Controller::getStringInput(std::string message)
 {
-    //dispaly the cursor
-    curs_set(TRUE);
-    //create the input fields and configure them
-    FIELD *field[2];
-	int rows, cols;
-	field[0] = new_field(1, termCol / 4, 1, 1, 0, 0);
-	field[1] = NULL;
-	set_field_back(field[0], A_UNDERLINE);
-	field_opts_off(field[0], O_AUTOSKIP);
-    field_opts_off(field[0], O_STATIC);
-    set_max_field(field[0], 30);
-    //Create the form
-	FORM *form = new_form(field);
-	scale_form(form, &rows, &cols);
-    WINDOW *formWin = newwin(rows + 4, cols + 4, termRow / 2 - (rows + 4) / 2, termCol / 2 - termCol / 8);
-    PANEL *formPanel = new_panel(formWin);
-    keypad(formWin, TRUE);
-    set_form_win(form, formWin);
-    set_form_sub(form, derwin(formWin, rows, cols, 2, 2));
-    box(formWin, 0, 0);
-    //Display the message to the user
-    printCenter(formWin, message, 1, cols);
-    //Dispaly the form
-	post_form(form);
-    show_panel(formPanel);
-	updateScreen();
-    wchar_t ch;
-	//Loop until the user presses enter (10)
-	while((ch = wgetch(formWin)) != 10)
-	{
-        switch(ch)
-		{
-            //Move cursor position left
-            case KEY_LEFT:
-			    form_driver(form, REQ_PREV_CHAR);
-			    break;
-            //Move cursor position right
-			case KEY_RIGHT:
-			    form_driver(form, REQ_NEXT_CHAR);
-			    break;
-            //Delete the character directly before the current cursor position
-            case '\b':
-            case KEY_BACKSPACE:
-                form_driver(form, REQ_PREV_CHAR);
-                form_driver(form, REQ_DEL_CHAR);
-                break;
-            //Delete the character direcly at the current cursor position
-            case KEY_DC:
-                form_driver(form, REQ_DEL_CHAR);
-                break;
-            //Add the character to the input field
-			default:
-				form_driver(form, ch);
-				break;
-		}
-	}
-    //Request validation so we can safely get the field buffer
-    form_driver(form, REQ_VALIDATION);
-    std::string filename = field_buffer(field[0], 0);
-    //Remove any extra spaces on the end
-    while(filename.back() == ' ')
-		filename.pop_back();
-    //Hide cursor and delete the form
-    curs_set(FALSE);
-    unpost_form(form);
-	free_form(form);
-	free_field(field[0]);
-    hide_panel(formPanel);
-    delwin(formWin);
-    del_panel(formPanel);
-    updateScreen();
-    return filename;
+	std::cout << message;
+	std::string userInput;
+	std::cin >> userInput;
+    return userInput;
 }
 
+/*
 void Controller::getRules()
 {
     //Show the cursor
@@ -557,16 +438,14 @@ void Controller::getRules()
         }
     }
 }
+*/
 
 /*Postconditions: displays the board in the board window
 */
+//TODO: delete this
+/*
 void Controller::printBoard()
 {
-    WINDOW *win = panel_window(boardPanel);
-    int x = 0, y = 0;
-    //save current cursor coordinates
-    getyx(win, y, x);
-    wmove(win, 1, 1);
     std::vector<std::vector<bool>> matrix = board->getMatrix();
     for (int r = 0; r < board->getHeight(); r++)
     {
@@ -586,101 +465,213 @@ void Controller::printBoard()
     //move cursor back to its original position
     wmove(win, y, x);
 }
-
-/*Postconditions: runs an iteration on the board and updates the status window
 */
+void Controller::renderBoard(SDL_Rect * renderArea)
+{
+	std::cerr << "render board called\n";
+	SDL_Color * cellColor = NULL;
+	printPanelDimensions();
+	std::vector<std::vector<bool>> matrix = board->getMatrix();
+
+	int cellWidth = renderArea->w / this->board->getWidth();
+	int cellHeight = renderArea->h / this->board->getHeight();
+	for (int row = 0; row < this->board->getHeight(); row++)
+	{
+		for (int column = 0; column < this->board->getWidth(); column++)
+		{
+			int y = renderArea->y + cellHeight * row;
+			int x = renderArea->x + cellWidth * column;
+			SDL_Rect cellRect = {x, y, cellWidth, cellHeight};
+
+			cellColor = &this->mainColor;
+			//TODO: make this render a nice box around the cell instead of just changing the color
+			if (this->currentRow == row && this->currentCol == column)
+			{
+				SDL_SetRenderDrawColor(mainRenderer, accentColor.r, accentColor.g, accentColor.b, 0xFF);
+				SDL_RenderFillRect(mainRenderer, &cellRect);
+			}
+			if (!matrix[row][column])
+			{
+				cellColor = &this->bgColor;
+			}
+			SDL_SetRenderDrawColor(mainRenderer, cellColor->r, cellColor->g, cellColor->b, cellColor->a);
+			bool filled = false;
+			if (!filled)
+			{
+				cellRect.x++;
+				cellRect.y++;
+				cellRect.w -= 2;
+				cellRect.h -= 2;
+			}
+			SDL_RenderFillRect(mainRenderer, &cellRect);
+		}
+	}
+	SDL_SetRenderDrawColor(mainRenderer, bgColor.r, bgColor.g, bgColor.b, 0xFF);
+}
+
+void Controller::renderBoard()
+{
+	SDL_Point temp = {-1, -1};
+	renderBoard(boardPanel);
+}
+
+SDL_Point Controller::getCell(int x, int y)
+{
+	//TODO: obviously, make the cell height a data field... this will let you control zoom
+	int cellWidth = boardPanel->w / this->board->getWidth();
+	int cellHeight = boardPanel->h / this->board->getHeight();
+	this->currentCol = (x - boardPanel->x) / cellWidth;
+	this->currentRow = (y - boardPanel->y) / cellHeight;
+	return {currentRow, currentCol};
+}
+
+void Controller::renderStatusPanel(SDL_Rect * renderArea)
+{
+	std::vector<std::string> stringList;
+	std::ostringstream boardSize, status;
+	//creating string streams for board size and status
+	boardSize << "Size: " << board->getHeight() << "x" << board->getWidth();
+	status << "Status: " << getStateName();
+	//adding strings to stringList
+	stringList.push_back(boardSize.str());
+	stringList.push_back(status.str());
+
+	//if we are not editing, we can also add these  details
+	if (state != editing)
+	{
+		std::ostringstream iterations, births, deaths, speed;
+		iterations << "Iterations: " << board->getIterations();
+		births << "Births: " << board->getBirths();
+		deaths << "Deaths: " << board->getDeaths();
+		speed << "Speed: " << this->speed;
+		stringList.push_back(iterations.str());
+		stringList.push_back(births.str());
+		stringList.push_back(deaths.str());
+		stringList.push_back(speed.str());
+	}
+
+	//finding an even amount of space along each dimension
+	int yShift = renderArea->h / 3;
+	int xShift = renderArea->w / 4;
+
+	for (int i = 0; i < stringList.size(); i++)
+	{
+		int row = i / 3 + 1;
+		int col = i % 3 + 1;
+
+		SDL_Surface * surface = TTF_RenderText_Shaded(mainFont, stringList[i].c_str(), mainColor, bgColor);
+		//centering each surface onto a point in the 2x3 grid
+		SDL_Rect tempRect = {renderArea->x + xShift * col - surface->w/2, renderArea->y + yShift * row - surface->h/2, surface->w, surface->h};
+		//creating a texture from surface and rendering it onto tempRect
+		SDL_RenderCopy(mainRenderer, SDL_CreateTextureFromSurface(mainRenderer, surface), NULL, &tempRect);
+	}
+	SDL_SetRenderDrawColor(mainRenderer, mainColor.r, mainColor.g, mainColor.b, 0xFF);
+	SDL_RenderDrawLine(mainRenderer, 0, renderArea->y, renderArea->w, renderArea->y);
+	SDL_SetRenderDrawColor(mainRenderer, bgColor.r, bgColor.g, bgColor.b, 0xFF);
+}
+
+void Controller::renderStatusPanel()
+{
+	renderStatusPanel(statusPanel);
+}
+
 void Controller::runIteration()
 {
     board->runIteration();
-    updateStatusWin();
 }
 
-/*Preconditions: dialog is a string object
-Postconditions: diaplays dialog to the user, and gets a yes or no answer from the user
-*/
-bool Controller::GetYesOrNo(std::string dialog)
+int Controller::getButtonInput(std::string dialog, std::vector<std::string> options)
 {
-    //create the window based on dialog length
-    WINDOW *dialogWin = newwin(5, dialog.size() + 4, termRow / 2 - 3, termCol / 2 - (dialog.size() + 4) / 2);
-    keypad(dialogWin, TRUE);
-    PANEL *dialogPanel = new_panel(dialogWin);
-    box(dialogWin, 0, 0);
-    mvwprintw(dialogWin, 1, 2, dialog.c_str());
-    wattron(dialogWin, A_STANDOUT);
-    mvwprintw(dialogWin, 3, (dialog.size() + 4) / 4 - 1, "<Yes>");
-    wattroff(dialogWin, A_STANDOUT);
-    mvwprintw(dialogWin, 3, 3 * (dialog.size() + 4) / 4 - 1, "<No>");
-    show_panel(dialogPanel);
-    updateScreen();
-    bool yesSelected = true;
-    wchar_t ch;
-    //loop until the user presses enter (10)
-	while((ch = wgetch(dialogWin)) != 10)
+	std::cerr << "get button input\n";
+	ButtonBox buttons(mainFont, mainColor, bgColor, dialog, options, boardPanel->w, boardPanel->h, true);
+
+	std::cerr << "buttons created\n";
+	buttons.render(mainRenderer);
+	std::cerr << "buttons rendered\n";
+	SDL_RenderPresent(mainRenderer);
+	std::cerr << "render presented\n";
+	while (!buttons.hasValidInput())
 	{
-        switch(ch)
-	    {
-            //Toggles the highlighting of the options and toggles yesSelected
-            case KEY_LEFT:
-			case KEY_RIGHT:
-                if(yesSelected)
-                {
-                    wattroff(dialogWin, A_STANDOUT);
-                    mvwprintw(dialogWin, 3, (dialog.size() + 4) / 4 - 1, "<Yes>");
-                    wattron(dialogWin, A_STANDOUT);
-                    mvwprintw(dialogWin, 3, 3 * (dialog.size() + 4) / 4 - 1, "<No>");
-                }
-                else
-                {
-                    wattron(dialogWin, A_STANDOUT);
-                    mvwprintw(dialogWin, 3, (dialog.size() + 4) / 4 - 1, "<Yes>");
-                    wattroff(dialogWin, A_STANDOUT);
-                    mvwprintw(dialogWin, 3, 3 * (dialog.size() + 4) / 4 - 1, "<No>");
-                }
-                yesSelected = !yesSelected;
-                break;
+		while (SDL_PollEvent(event) != 0)
+		{
+			if (event->type == SDL_QUIT)
+			{
+				exit(0); //see ya
+			}
+			else if (event->type == SDL_MOUSEBUTTONDOWN)
+			{
+				int a, b;
+				SDL_GetMouseState(&a, &b);
+				buttons.updateInput(a, b);
+			}
+			else if (event->type == SDL_MOUSEMOTION)
+			{
+				int a, b;
+				SDL_GetMouseState(&a, &b);
+				buttons.updateHover(a, b);
+			}
 		}
-        wrefresh(dialogWin);
+		buttons.render(mainRenderer);
+		SDL_RenderPresent(mainRenderer);
 	}
-    //delete the window
-    curs_set(FALSE);
-    hide_panel(dialogPanel);
-    delwin(dialogWin);
-    del_panel(dialogPanel);
-    updateScreen();
-    return yesSelected;
+	//TODO:delete buttons?
+	return buttons.getInput();
+}
+bool Controller::getYesOrNo(std::string dialog)
+{
+	std::vector<std::string> options;
+	options.push_back("Yes");
+	options.push_back("No");
+	//the exclamation point is because Yes corresponds to 0, which is false
+	//intuitively, yes should correspond to "true";
+	return !getButtonInput(dialog, options);
 }
 
 /*Preconditions: dialog is a string
 Postconditions: displays dialog to the user, and wait for a keypress
 */
-void Controller::ConfirmationBox(std::string dialog)
+void Controller::confirmationBox(std::string dialog)
 {
-    ///create the window based on dialog length
-    WINDOW *dialogWin = newwin(5, dialog.size() + 4, termRow / 2 - 3, termCol / 2 - (dialog.size() + 4) / 2);
-    keypad(dialogWin, TRUE);
-    PANEL *dialogPanel = new_panel(dialogWin);
-    box(dialogWin, 0, 0);
-    mvwprintw(dialogWin, 1, 2, dialog.c_str());
-    wattron(dialogWin, A_STANDOUT);
-    mvwprintw(dialogWin, 3, (dialog.size() + 4) / 2 - 2, "<OK>");
-    show_panel(dialogPanel);
-    updateScreen();
-    //wait for a keypress
-    wgetch(dialogWin);
-    //delete the window
-    curs_set(FALSE);
-    hide_panel(dialogPanel);
-    delwin(dialogWin);
-    del_panel(dialogPanel);
-    updateScreen();
+	std::vector<std::string> options;
+	options.push_back("Ok.");
+	ButtonBox buttons(mainFont, mainColor, mainColor, dialog, options, boardPanel->w / 2, boardPanel->h / 2, true);
+	buttons.render(mainRenderer);
+	SDL_RenderPresent(mainRenderer);
+	while (!buttons.hasValidInput())
+	{
+		while (SDL_PollEvent(event) != 0)
+		{
+			if (event->type == SDL_QUIT)
+			{
+				exit(0);
+			}
+			else if (event->type == SDL_MOUSEBUTTONDOWN)
+			{
+				int a, b;
+				SDL_GetMouseState(&a, &b);
+				buttons.updateInput(a, b);
+			}
+			else if (event->type == SDL_MOUSEMOTION)
+			{
+				int a, b;
+				SDL_GetMouseState(&a, &b);
+				buttons.updateHover(a, b);
+			}
+			//TODO: exit if enter key is pressent
+		}
+	}
 }
 
-/*Postconditions: displays the keybindings to the user
+//possibly not useful
+/*Postconditions: displays the keybindings to the user...possibly not useful
 */
-void Controller::KeybindingsBox()
+//TODO: add a help box again
+
+void Controller::keybindingsBox()
 {
-    //create the window and print the keybindings
-    WINDOW *dialogWin = newwin(15, 38, termRow / 2 - 7, termCol / 2 - 19);
+	std::cout << "Help box coming soon." << std::endl;
+	//create the window and print the keybindings
+    /*WINDOW *dialogWin = newwin(15, 38, termRow / 2 - 7, termCol / 2 - 19);
     keypad(dialogWin, TRUE);
     PANEL *dialogPanel = new_panel(dialogWin);
     box(dialogWin, 0, 0);
@@ -701,12 +692,14 @@ void Controller::KeybindingsBox()
     hide_panel(dialogPanel);
     delwin(dialogWin);
     del_panel(dialogPanel);
-    updateScreen();
+    updateScreen();*/
 }
+
 
 /*Preconditions: height and width are references to integers
 Postconditions: sets height and width equal to the user input values
 */
+/*
 void Controller::GetPatternDimensions(int &height, int &width)
 {
     //Show the cursor
@@ -801,337 +794,181 @@ void Controller::GetPatternDimensions(int &height, int &width)
         }
     }
 }
+*/
 
 /*Postconditions: gets a ratio input from the user
 */
-double Controller::getRatioInput()
+double Controller::getRatioInput(std::string message)
 {
-    //show the cursor
-    curs_set(TRUE);
-    //create the fields and configure them
-    FIELD *field[2];
-	int rows, cols;
-	field[0] = new_field(1, termCol / 4, 1, 1, 0, 0);
-	field[1] = NULL;
-	set_field_back(field[0], A_UNDERLINE);
-	field_opts_off(field[0], O_AUTOSKIP);
-    field_opts_off(field[0], O_STATIC);
-    set_field_type(field[0], TYPE_INTEGER, 10, 0, 100);
-    set_max_field(field[0], 10);
-    //create the form
-	FORM *form = new_form(field);
-	scale_form(form, &rows, &cols);
-    WINDOW *formWin = newwin(rows + 6, cols + 4, termRow / 2 - (rows + 6) / 2, termCol / 2 - termCol / 8);
-    PANEL *formPanel = new_panel(formWin);
-    keypad(formWin, TRUE);
-    set_form_win(form, formWin);
-    set_form_sub(form, derwin(formWin, rows, cols, 3, 2));
-    box(formWin, 0, 0);
-    printCenter(formWin, "Enter a percentage of", 1, cols);
-    printCenter(formWin, "cells to turn live:", 2, cols);
-	post_form(form);
-    show_panel(formPanel);
-	updateScreen();
-    wchar_t ch;
-	/* Loop through to get user requests */
-    bool isValid = false;
-    double ratio = 0;
-    //Loop until the user gives a number between 0 and 100, inclusive
-	while (!isValid)
-	{
-        ch = wgetch(formWin);
-        switch(ch)
-		{
-            //move the cursor left
-            case KEY_LEFT:
-			    form_driver(form, REQ_PREV_CHAR);
-			    break;
-            //move the cursor right
-			case KEY_RIGHT:
-			    form_driver(form, REQ_NEXT_CHAR);
-			    break;
-            //delete the character before the cursor position
-            case '\b':
-            case KEY_BACKSPACE:
-                form_driver(form, REQ_PREV_CHAR);
-                form_driver(form, REQ_DEL_CHAR);
-                break;
-            //delete the character at the cursor position
-            case KEY_DC:
-                form_driver(form, REQ_DEL_CHAR);
-                break;
-            //check the current field value
-            case '\n':
-                form_driver(form, REQ_VALIDATION);
-                ratio = atof(field_buffer(field[0], 0));
-                if(ratio >= 0 && ratio <= 100)
-                    isValid = true;
-                break;
-            //add the character to the field
-			default:
-				form_driver(form, ch);
-				break;
-		}
-	}
-    //get the ratio from the field
-    form_driver(form, REQ_VALIDATION);
-    std::string buffer = field_buffer(field[0], 0);
-    while(buffer.back() == ' ')
-        buffer.pop_back();
-    if(buffer == "")
-        ratio = -1;
-    else
-        ratio = atof(buffer.c_str())/100;
-    //delete the form
-    curs_set(FALSE);
-    unpost_form(form);
-	free_form(form);
-	free_field(field[0]);
-    hide_panel(formPanel);
-    delwin(formWin);
-    del_panel(formPanel);
-    updateScreen();
+	std::cout << message;
+	double ratio;
+	std::cin >> ratio;
     return ratio;
 }
 
 /*A sub control loop, allows the user the manually toggle cells and add patterns
 */
-void Controller::EditMode()
+//TODO:add better exit(0) (i.e. actually add a method)
+void Controller::editMode()
 {
-    WINDOW* boardWin = panel_window(boardPanel);
-    keypad(boardWin, TRUE);
-    int maxX = 0, maxY = 0;
-    getmaxyx(boardWin, maxY, maxX);
-    mvwaddch(boardWin, maxY / 2, maxX / 2, winch(boardWin)|A_STANDOUT);
-    wmove(boardWin, maxY / 2, maxX / 2);
-	int x = 0, y = 0;
+	int x = 0, y = 0, r;
+	SDL_Point cell = getCell(x, y);
     //loop until we are no longer paused or editing
     while(getState() == paused || getState() == editing)
     {
-        updateScreen();
-        wchar_t input = getch();
-        //erase the current cursor
-        if( input == KEY_UP || input == KEY_DOWN || input == KEY_LEFT || input == KEY_RIGHT || input == ' ')
-        {
-            getyx(boardWin, y, x);
-            waddch(boardWin, char( winch(boardWin) ));
-            wmove(boardWin, y, x);
-        }
-        std::string filename = "";
-        bool isFileValid = false;
-        Pattern *pattern = nullptr;
-        std::string layout = "";
-        std::vector<std::vector<bool>> matrix;
-        switch(input)
-        {
-            //move the cursor up
-            case KEY_UP:
-                if(y == 1)
-                    wmove(boardWin, maxY - 2, x);
-                else
-                    wmove(boardWin, y-1, x);
-                getyx(boardWin, y, x);
-                waddch(boardWin, winch(boardWin)|A_STANDOUT);
-                wmove(boardWin, y, x);
-                break;
-            //move the cursor down
-            case KEY_DOWN:
-                if(y == (maxY - 2))
-                    wmove(boardWin, 1, x);
-                else
-                    wmove(boardWin, y+1, x);
-                getyx(boardWin, y, x);
-                waddch(boardWin, winch(boardWin)|A_STANDOUT);
-                wmove(boardWin, y, x);
-                break;
-                //move the cursor left
-            case KEY_LEFT:
-                if(x == 1)
-                    wmove(boardWin, y, maxX - 2);
-                else
-                    wmove(boardWin, y, x-1);
-                getyx(boardWin, y, x);
-                waddch(boardWin, winch(boardWin)|A_STANDOUT);
-                wmove(boardWin, y, x);
-                break;
-            //move the cursor right
-            case KEY_RIGHT:
-                if(x == maxX - 2)
-                    wmove(boardWin, y, 1);
-                else
-                    wmove(boardWin, y, x+1);
-                getyx(boardWin, y, x);
-                waddch(boardWin, winch(boardWin)|A_STANDOUT);
-                wmove(boardWin, y, x);
-                break;
-            //toggle the cell at the current cursor location
-            case ' ':
-                board->toggle(y-1, x-1);
-                printBoard();
-                wmove(boardWin, y, x);
-                waddch(boardWin, winch(boardWin)|A_STANDOUT);
-                wmove(boardWin, y, x);
-                break;
-            //decrease the speed
-            case '[':
-                if (state != editing)
-                    setSpeed(-1);
-                break;
-            //increase the speed
-            case ']':
-                if (state != editing)
-                    setSpeed(1);
-                break;
-            //exit edit mode
-            case 'p':
-                if (state != editing)
-                    setState(running);
-                break;
-            //get birth/survival rules
-            case 'r':
-                if (state != editing)
-                    getRules();
-                break;
-            //display the keybindings box
-            case 'k':
-                KeybindingsBox();
-                break;
-            //add a pattern
-            case 'a':
-                getyx(boardWin, y, x);
-                //loop until the filename is valid or until they enter nothing
-                while(!isFileValid)
-                {
-                    filename = getStringInput("Enter a filename:");
-                    if(filename == "")
-                        break;
-                    try
-                    {
-                        pattern = new Pattern("patterns" + separator() + filename);
-                        if(pattern->getHeight() > board->getHeight() || pattern->getWidth() > board->getWidth())
-                        {
-                            throw "Pattern too big!";
-                        }
-                    }catch(char const* message)
-                    {
-                        ConfirmationBox(message);
-                        continue;
-                    }
-                    isFileValid = true;
-                }
-                if(filename == "")
-                    break;
-                matrix = pattern->getMatrix();
-                RenderPattern(matrix);
-                do
-                {
-                    input = wgetch(boardWin);
-                    getyx(boardWin, y, x);
-                    switch(input)
-                    {
-                        //move the pattern up
-                        case KEY_UP:
-                            if(y == 1)
-                                wmove(boardWin, maxY - 2, x);
-                            else
-                                wmove(boardWin, y-1, x);
-                            RenderPattern(matrix);
-                            break;
-                        //move the pattern down
-                        case KEY_DOWN:
-                            if(y == (maxY - 2))
-                                wmove(boardWin, 1, x);
-                            else
-                                wmove(boardWin, y+1, x);
-                            RenderPattern(matrix);
-                            break;
-                        //move the pattern left
-                        case KEY_LEFT:
-                            if(x == 1)
-                                wmove(boardWin, y, maxX - 2);
-                            else
-                                wmove(boardWin, y, x-1);
-                            RenderPattern(matrix);
-                            break;
-                        //move the pattern right
-                        case KEY_RIGHT:
-                            if(x == maxX - 2)
-                                wmove(boardWin, y, 1);
-                            else
-                                wmove(boardWin, y, x+1);
-                            RenderPattern(matrix);
-                            break;
-                        //rotate the pattern clockwise
-                        case '\'':
-                            pattern->Rotate();
-                            matrix = pattern->getMatrix();
-                            RenderPattern(matrix);
-                            break;
-                        //rotate the pattern counter clockwise
-                        case ';':
-                            pattern->Rotate();
-                            pattern->Rotate();
-                            pattern->Rotate();
-                            matrix = pattern->getMatrix();
-                            RenderPattern(matrix);
-                            break;
-                        //dispaly the keybindings box
-                        case 'k':
-                            KeybindingsBox();
-                            break;
-                        //place the pattern
-                        case 10:
-                            board->addPattern(pattern->getMatrix(), y, x);
-                            break;
-                    }
-                } while(input != 10 && input != 27);
-                werase(boardWin);
-                box(boardWin, 0, 0);
-                printBoard();
-                wmove(boardWin, y, x);
-                break;
-            //run a single iteration
-            case 10:
-                runIteration();
-                printBoard();
-                break;
-            //Exit edit mode
-            case 27:
-                if(!isSaved())
-                    SaveCurrent();
-                setState(menu);
-                break;
-        }
+		SDL_RenderClear(mainRenderer);
+		renderBoard(this->boardPanel);
+		renderStatusPanel(this->statusPanel);
+		SDL_RenderPresent(mainRenderer);
+		updateScreen();
+		while (SDL_PollEvent(event) != 0)
+		{
+		    switch(this->event->type)
+			{
+				case SDL_QUIT:
+				std::cout << "exiting...\n";
+				exit(-1); //TODO: exit more gracefully
+				break;
+				case SDL_MOUSEMOTION:
+				case SDL_MOUSEBUTTONUP:
+				SDL_GetMouseState(&x, &y);
+				cell = getCell(x, y);
+				break;
+				case SDL_MOUSEBUTTONDOWN:
+				SDL_GetMouseState(&x, &y);
+				cell = getCell(x, y);
+				//TODO: get correct cell!!!
+				this->board->toggle(this->currentRow, this->currentCol);
+				break;
+				case SDL_KEYDOWN:
+				switch(this->event->key.keysym.sym)
+				{
+					case SDLK_UP:
+					this->currentRow--;
+					break;
+					case SDLK_DOWN:
+					this->currentRow++;
+					//TODO:make sure you can't go out of bounds
+					break;
+					case SDLK_LEFT:
+					this->currentCol--;
+					break;
+					case SDLK_RIGHT:
+					this->currentCol++;
+					break;
+					case SDLK_SPACE:
+					this->board->toggle(this->currentRow, this->currentCol);
+					break;
+					case SDLK_RETURN:
+					runIteration();
+					break;
+					case SDLK_RIGHTBRACKET:
+					setSpeed(1);
+					break;
+					case SDLK_LEFTBRACKET:
+					setSpeed(-1);
+					break;
+					case SDLK_h:
+					keybindingsBox();
+					break;
+					case SDLK_a:
+					std::cout << currentRow << " " << currentCol << std::endl;
+					addPattern(this->currentRow, this->currentCol);
+					break;
+					case SDLK_p:
+					setState(running);
+					break;
+					case SDLK_ESCAPE:
+					setState(menu);
+				}
+	        }
+		}
 	}
 }
 
+void Controller::runningMode()
+{
+
+	while(getState() == running)
+    {
+		//TODO: use timing to make this better
+		SDL_RenderClear(mainRenderer);
+		SDL_Delay(1.0/getSpeed() * 1000);
+		for (int i = 1; (getSpeed () > 1000) && (i < getSpeed() / 1000); i++)
+		{
+			runIteration();
+		}
+		runIteration();
+		renderBoard();
+		renderStatusPanel();
+		updateScreen();
+		while (SDL_PollEvent(event) != 0)
+		{
+		    switch(this->event->type)
+			{
+				case SDL_QUIT:
+				std::cout << "exiting...\n";
+				exit(-1); //TODO: exit more gracefully
+				break;
+				case SDL_KEYDOWN:
+				switch(this->event->key.keysym.sym)
+				{
+					case SDLK_UP:
+					this->currentRow--;
+					break;
+					case SDLK_DOWN:
+					this->currentRow++;
+					//TODO:make sure you can't go out of bounds
+					break;
+					case SDLK_LEFT:
+					this->currentCol--;
+					break;
+					case SDLK_RIGHT:
+					this->currentCol++;
+					break;
+					case SDLK_RIGHTBRACKET:
+					setSpeed(1);
+					break;
+					case SDLK_LEFTBRACKET:
+					setSpeed(-1);
+					break;
+					case SDLK_h:
+					keybindingsBox();
+					break;
+					case SDLK_p:
+					setState(paused);
+					break;
+					case SDLK_ESCAPE:
+					setState(menu);
+				}
+	        }
+		}
+	}
+}
+
+void Controller::addPattern(int startR, int startC)
+{
+	std::cout << "Sorry, I'll add this feature later.\n";
+}
 /*Preconditions: matrix is a vector of vectors of bools
 Postconditions: renders matrix on top of the board
 */
-void Controller::RenderPattern(std::vector<std::vector<bool>>& matrix)
+//TODO: fix this method
+/*
+void Controller::renderPattern(std::vector<std::vector<bool>>& matrix)
 {
-    WINDOW *boardWin = panel_window(boardPanel);
-    int x = 0, y = 0;
-    getyx(boardWin, y, x);
-    printBoard();
-    wattron(boardWin, COLOR_PAIR(1));
-    for(size_t i = 0; i < matrix.size(); ++i)
-    {
-        for(size_t j = 0; j < matrix[0].size(); ++j)
-        {
-            mvwprintw(boardWin, (y + i) % board->getMatrix().size() + 1, (x + j) % board->getMatrix()[0].size() + 1, (matrix[i][j]) ? "X" : "");
-        }
-    }
-    wattroff(boardWin, COLOR_PAIR(1));
-    wmove(boardWin, y, x);
+
 }
+*/
 
 /*Postconditions: Saves the board if the users selects yes
                 does nothing otherwise
 */
-void Controller::SaveCurrent()
+//TODO: make it happen
+/*
+void Controller::saveCurrent()
 {
-    bool shouldSave = GetYesOrNo("Would you like to save?");
+	bool shouldSave = getYesOrNo("Would you like to save?", options);
     if(shouldSave)
     {
         std::string filename = getStringInput("Enter a filename:");
@@ -1149,3 +986,4 @@ void Controller::SaveCurrent()
         board->saveState(filename);
     }
 }
+*/

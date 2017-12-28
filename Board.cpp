@@ -360,6 +360,8 @@ void Board::render(SDL_Renderer * renderer, SDL_Rect * renderArea, SDL_Point * c
 	SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
 }
 
+//FOR TESTING ONLY
+/*
 SDL_Window * gWindow = NULL;
 SDL_Renderer * gRenderer = NULL;
 
@@ -571,6 +573,25 @@ int main(int argc, char** argv)
 		}
 	}
 	loop = true;
-
-    return 0;
+	SDL_Rect viewport = {0, SCREEN_HEIGHT/2, SCREEN_WIDTH, SCREEN_HEIGHT/2};
+	SDL_RenderSetViewport(gRenderer, &viewport);
+	SDL_RenderClear(gRenderer);
+	cout << "clearning renderer\n";
+	SDL_RenderPresent(gRenderer);
+	while (loop)
+	{
+		while (SDL_PollEvent(e) != 0)
+		{
+			if (e->type == SDL_QUIT)
+			{
+				return 0;
+			}
+			else if (e->type == SDL_MOUSEBUTTONDOWN)
+			{
+				loop = false;
+			}
+		}
+	}
+	return 0;
 }
+*/

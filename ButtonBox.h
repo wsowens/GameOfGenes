@@ -7,7 +7,7 @@
 class ButtonBox
 {
 public:
-	ButtonBox(TTF_Font * font, SDL_Color textColor, SDL_Color bgColor, std::string display, std::vector<std::string> options, int x, int y);
+	ButtonBox(TTF_Font * font, SDL_Color textColor, SDL_Color bgColor, std::string display, std::vector<std::string> options, int i, int j, bool isCentered);
 	~ButtonBox();
 	void free();
 

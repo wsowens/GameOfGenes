@@ -2,22 +2,34 @@
 #include <ctime>
 #include <exception>
 
+#define SCREEN_HEIGHT 600
+#define SCREEN_WIDTH 800
+
 void MainMenu(Controller *controller)
 {
-	switch( controller->getMainMenuChoice() )
+	std::vector<std::string> options;
+	options.push_back("Create Empty Board");
+	options.push_back("Load a Saved Board");
+	options.push_back("Load a Random Board");
+	options.push_back("Enter Pattern Editor");
+	options.push_back("Exit");
+
+	std::cout << "main menu\n";
+
+	switch( controller->getButtonInput("Welcome to Game of Life (in SDL)", options))
 	{
 		//Create a new board
 		case 0:
 		{
-			bool wrapAround = controller->GetYesOrNo("Would you like to enable wrap around?");
+			bool wrapAround = controller->getYesOrNo("Would you like to enable wrap around?");
 			controller->createNewBoard(wrapAround);
 			controller->setState(paused);
-			controller->printBoard();
 			break;
 		}
 		//Load a saved board
 		case 1:
 		{
+			/*
 			std::string filename = "";
 			bool isFileValid = false;
 			//Loop until we get a valid filename
@@ -40,26 +52,27 @@ void MainMenu(Controller *controller)
 			if(filename == "")
 				break;
 			controller->setState(paused);
-			controller->printBoard();
+			controller->printBoard(); */
+			std::cout << "Loading boards will come soon.\n";
 			break;
 		}
 		//Load a random board
 		case 2:
 		{
-			bool wrapAround = controller->GetYesOrNo("Would you like to enable wrap around?");
+			bool wrapAround = controller->getYesOrNo("Would you like to enable wrap around?");
 			controller->createNewBoard(wrapAround);
-			double ratio = controller->getRatioInput();
+			double ratio = controller->getRatioInput("Enter a ratio");
 			//If the user entered nothing, cancel laoding a random board
 			if(ratio == -1)
 				break;
 			controller->randomizeBoard(ratio);
 			controller->setState(paused);
-			controller->printBoard();
 			break;
 		}
 		//Load the pattern editor
 		case 3:
 		{
+			/*
 			int height = 0;
 			int width = 0;
 			controller->GetPatternDimensions(height, width);
@@ -69,6 +82,9 @@ void MainMenu(Controller *controller)
 			controller->createNewBoard(false, height, width);
 			controller->setState(editing);
 			controller->printBoard();
+			break;
+			*/
+			std::cout << "coming soon sorry\n";
 			break;
 		}
 		//Exit
@@ -80,27 +96,73 @@ void MainMenu(Controller *controller)
 
 }
 
-int main()
+SDL_Window * gWindow = NULL;
+
+bool init()
+{
+	//Initialize SDL
+	if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
+	{
+		std::cout <<  "SDL could not initialize! SDL Error: " << SDL_GetError() << std::endl;
+		return false;
+	}
+	else
+	{
+		//Set texture filtering to linear
+		if( !SDL_SetHint( SDL_HINT_RENDER_SCALE_QUALITY, "1" ) )
+		{
+			std::cout <<  "Warning: Linear texture filtering not enabled!\n";
+		}
+
+		//Create window
+		gWindow = SDL_CreateWindow( "Game of Life", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN );
+		if( gWindow == NULL )
+		{
+			std::cout <<  "Window could not be created! SDL Error: " << SDL_GetError() << std::endl;
+			return false;
+		}
+		else
+		{
+			//Initialize PNG loading
+			int imgFlags = IMG_INIT_PNG;
+			if( !( IMG_Init( imgFlags ) & imgFlags ) )
+			{
+				std::cout <<  "SDL_image could not initialize! SDL_image Error: " << IMG_GetError() << "\n";
+				return false;
+			}
+			if (TTF_Init() == -1)
+			{
+				std::cout << "SDL_ttf could not initialize! SDL_ttf Error: " << TTF_GetError() << std::endl;
+				return false;
+			}
+
+		}
+	}
+	return true;
+}
+
+int main(int argc, char** args)
 {
     //Setup
 	srand(time(0));
-    initscr();
-	//turn off the keyboard buffer
-    cbreak();
-    noecho();
-    timeout(-1);
-	//hide the terminal cursor
-    curs_set(FALSE);
-	start_color();
-	//9 corresponds to bright red
-	init_pair(1, 9, COLOR_BLACK);
-	//Allows use of the arrow keys
-    keypad(stdscr, TRUE);
-
-    Controller *controller = new Controller();
+	std::cout << "About to begin\n";
+    if (!init() || gWindow == NULL)
+	{
+		std::cout << "A critical error has occured.";
+		return -1;
+	}
+	else
+	{
+		std::cout << "initialization complete\n";
+	}
+    Controller *controller = new Controller(gWindow);
+	std::cout << "controller constructed\n";
+	controller->printPanelDimensions();
     controller->updateScreen();
+	std::cout << "screen updated\n";
+	controller->printPanelDimensions();
 	MainMenu(controller);
-    wchar_t input = 'a';
+	std::cout << "main menu completed\n";
     controller->updateScreen();
 	//Main control loop
 	while (controller->getState() != exiting)
@@ -111,40 +173,17 @@ int main()
 				MainMenu(controller);
 				break;
 			case running:
-				timeout(1.0/controller->getSpeed() * 1000);
-				for (int i = 1; (controller->getSpeed() > 1000) && (i < controller->getSpeed() / 1000); i++) {
-					controller-> runIteration();
-				}
-				controller->runIteration();
-				controller->printBoard();
-				controller->updateScreen();
-				input = getch();
-				//Simulation controls
-				if (input == '[')
-					controller->setSpeed(-1);
-				else if (input == ']')
-					controller->setSpeed(1);
-				else if (input == 'p')
-					controller->setState(paused);
-				else if(input == 'k')
-					controller->KeybindingsBox();
-				else if (input == 27) {
-					if(!controller->isSaved())
-						controller->SaveCurrent();
-					controller->setState(menu);
-				}
-
+				controller->runningMode();
 				break;
 			case paused:
 			case editing:
-				controller->EditMode();
+				controller->editMode();
 				break;
 			case exiting:
 				break;
-
 		}
 	}
-	//Clean up ncurses
-    endwin();
+
+	//TODO: clean up SDL
     return 0;
 }

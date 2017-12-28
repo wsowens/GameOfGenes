@@ -1,18 +1,12 @@
-
 #include "ButtonBox.h"
 
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 600
-
-ButtonBox::ButtonBox(TTF_Font * font, SDL_Color textColor, SDL_Color bgColor, std::string display, std::vector<std::string> options, int x, int y)
+ButtonBox::ButtonBox(TTF_Font * font, SDL_Color textColor, SDL_Color bgColor, std::string display, std::vector<std::string> options, int i, int j, bool isCentered)
 {
 	this->font = font;
 	this->textColor = textColor;
 	this->bgColor = bgColor;
 	this->display = display;
 	this->displaySurface = TTF_RenderText_Shaded(font, display.c_str(), textColor, bgColor);
-	this->x = x;
-	this->y = y;
 
 	int maxButtonHeight = 0;
 	int totalButtonWidth = 0;
@@ -33,6 +27,16 @@ ButtonBox::ButtonBox(TTF_Font * font, SDL_Color textColor, SDL_Color bgColor, st
 	this->width = (totalButtonWidth > displaySurface->w) ? totalButtonWidth : displaySurface->w;
 	this->width += padding * 2;
 
+	if (!isCentered)
+	{
+		this->x = i;
+		this->y = j;
+	}
+	else
+	{
+		this->x = (i - width) / 2;
+		this->y = (j - height) / 2;
+	}
 	int buttonY = height - maxButtonHeight - padding + y;
 	int space = (width - totalButtonWidth) / (buttonList.size() + 1);
 	int buttonX = x + space;
@@ -98,6 +102,8 @@ void ButtonBox::updateHover(int otherX, int otherY)
 void ButtonBox::render(SDL_Renderer * renderer)
 {
 	//creating the background of the box
+	Uint8 oldR, oldG, oldB, oldA;
+	SDL_GetRenderDrawColor(renderer, &oldR, &oldG, &oldB, &oldA);
 	SDL_Rect fillRect = {x, y, width, height};
 	SDL_SetRenderDrawColor(renderer, bgColor.r, bgColor.g, bgColor.b, bgColor.a);
 	SDL_RenderFillRect(renderer, &fillRect);
@@ -119,9 +125,9 @@ void ButtonBox::render(SDL_Renderer * renderer)
 
 
 	//creating an outline of the box
-
 	SDL_RenderDrawRect(renderer, &fillRect);
-	//convert the draw color back to what it was before?
+	//reseting renderer color
+	SDL_SetRenderDrawColor(renderer, oldR, oldG, oldB, oldA);
 
 }
 
@@ -141,6 +147,8 @@ int ButtonBox::getInput()
 	return input;
 }
 
+//FOR TESTING ONLY
+/*
 SDL_Window * gWindow = NULL;
 SDL_Renderer * gRenderer = NULL;
 
@@ -224,10 +232,10 @@ int main(int argc, char** args)
 	options.push_back("Close Window");
 	options.push_back("This button does nothing.");
 
-	ButtonBox mainMenu(myFont, consoleGreen, black, "Welcome to the ButtonBox!", options, 100, 100);
+	ButtonBox mainMenu(myFont, consoleGreen, black, "Welcome to the ButtonBox!", options, SCREEN_WIDTH, SCREEN_HEIGHT, true);
 	std::vector<std::string> coolOptions;
 	coolOptions.push_back("Ok, go back.");
-	ButtonBox cool(myFont, consoleGreen, black, "Cool!", coolOptions, 150, 150);
+	ButtonBox cool(myFont, consoleGreen, black, "Cool!", coolOptions, 300, 300, false);
 	ButtonBox * current = &mainMenu;
 
 	SDL_Event * e = new SDL_Event();
@@ -280,4 +288,4 @@ int main(int argc, char** args)
 
 	printf("%d\n", current->getInput());
 
-}
+}*/

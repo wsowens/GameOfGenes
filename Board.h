@@ -13,7 +13,6 @@ class Board
 {
 
 protected:	//protected variables
-
 	std::vector<std::vector<bool>> matrix;	//boolean matrix that will store cells
 	int height;								//height of matrix
 	int width;								//width of matrix
@@ -29,7 +28,7 @@ public:	//public functions and variables
 
 	Board(bool wrapAround, int height, int width);	//a constructor for the Board class if height, width, and wraparound options are chosen
 	Board(std::string filename);					//a constructor for the board class if just a filename is given
-	void toggle(int x, int y);						//toggles the cell from true to false or false to true
+	void toggle(int r, int c);						//toggles the cell from true to false or false to true
 	void randomize(double ratio=0.5);					//allows a board to be randomly generated
 	void runIteration();							//runs one iteration (for example, when the user presses the "Enter" key in the GameOfLife)
 	void runIteration(int runs);					//runs the interation the correct number of times
@@ -37,8 +36,11 @@ public:	//public functions and variables
 	void addPattern(std::vector<std::vector<bool>>, int x, int y);	//allows the user to add an existing pattern to the board by calling with the actual bool matrix, along with an x and y position
 	void printBoard();								//prints the board as a matrix of 1s and 0s - good for testing purposes
 	void saveState(std::string fileName);			//save a given state or board, given a name for the file
-	std::vector<std::vector<bool>>& getMatrix();	//returns the matrix
 	int numNeigh(int r, int c);						//counts how many live neighbours a given cell has
+
+	//experiment with getting constant?
+	std::vector<std::vector<bool>>& getMatrix();	//returns the matrix
+
 	int getHeight();								//returns the height of the board
 	int getWidth();									//returns the width of the board
 	int getIterations();							//returns the number of iterations that were run
@@ -47,6 +49,7 @@ public:	//public functions and variables
 	bool getIsSaved();								//returns a boolean value of if the board has been saved
 	void setBirthRule(set<int> input);				//set a new birthing rule set
 	void setSurvivalRule(set<int> input);			//set a new survival rule set
+
 	string getBirthRule();					//return a formatted rule string for births
 	string getSurvivalRule();				//return a formatted rule string for survival
 

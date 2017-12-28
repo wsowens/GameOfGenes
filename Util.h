@@ -25,7 +25,7 @@ struct BoardData{
     int deaths;
 	set<int> birthRule;
 	set<int> survivalRule;
-    vector<vector<bool>> matrix;
+    vector< vector<bool> > matrix;
 };
 
 #endif /* UTIL_H_ */

@@ -1,28 +1,30 @@
-CC=g++
-CFLAGS=-c -Wall -pedantic -std=c++11
+#Copyright Notice:
+#The files within this zip file are copyrighted by Lazy Foo' Productions (2004-2014)
+#and may not be redistributed without written permission.
 
-all: GameOfLife
+#OBJS specifies which files to compile as part of the project
+OBJS = GameOfLife.cpp Controller.cpp Board.cpp Util.cpp Formats.cpp Pattern.cpp ButtonBox.cpp Button.cpp
 
-GameOfLife: GameOfLife.o Controller.o Board.o Formats.o Util.o Pattern.o
-	$(CC) GameOfLife.o Controller.o Board.o Formats.o Util.o Pattern.o -o GameOfLife -lncurses -lpanel -lform -lmenu
+#CC specifies which compiler we're using
+CC = x86_64-w64-mingw32-g++
 
-GameOfLife.o: GameOfLife.cpp
-	$(CC) $(CFLAGS) GameOfLife.cpp
+#INCLUDE_PATHS specifies the additional include paths we'll need
+INCLUDE_PATHS = -IC:/usr/x86_64-w64-mingw32/include/SDL2
 
-Controller.o: Controller.cpp Board.o Util.o
-	$(CC) $(CFLAGS) Controller.cpp
+#LIBRARY_PATHS specifies the additional library paths we'll need
+LIBRARY_PATHS = -LC:/usr/x86_64-w64-mingw32/lib
 
-Board.o: Board.cpp Util.o
-	$(CC) $(CFLAGS) Board.cpp
+#COMPILER_FLAGS specifies the additional compilation options we're using
+# -w suppresses all warnings
+# -Wl,-subsystem,windows gets rid of the console window
+COMPILER_FLAGS = -w -static-libgcc -static-libstdc++ -std=c++11
 
-Pattern.o: Pattern.cpp
-	$(CC) $(CFLAGS) Pattern.cpp
+#LINKER_FLAGS specifies the libraries we're linking against
+LINKER_FLAGS = -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf
 
-Formats.o: Formats.cpp Util.o
-	$(CC) $(CFLAGS) Formats.cpp
+#OBJ_NAME specifies the name of our exectuable
+OBJ_NAME = ./64bit/main.exe
 
-Util.o:
-	$(CC) $(CFLAGS) Util.cpp
-
-clean:
-	rm *.o
+#This is the target that compiles our executable
+all : $(OBJS)
+	$(CC) -o $(OBJ_NAME) $(OBJS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) $(COMPILER_FLAGS) $(LINKER_FLAGS)
