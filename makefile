@@ -28,3 +28,6 @@ OBJ_NAME = ./64bit/main.exe
 #This is the target that compiles our executable
 all : $(OBJS)
 	$(CC) -o $(OBJ_NAME) $(OBJS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) $(COMPILER_FLAGS) $(LINKER_FLAGS)
+
+board:
+	$(CC) -o ./64bit/board.exe Board.cpp Formats.cpp Util.cpp $(INCLUDE_PATHS) $(LIBRARY_PATHS) $(COMPILER_FLAGS) $(LINKER_FLAGS)

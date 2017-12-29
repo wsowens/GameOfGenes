@@ -112,41 +112,21 @@ Postconditions: Constructs a new board based on filename
                 Throws an error if the loaded board is bigger than the
                 max obard size
 */
-/*
+
 void Controller::createNewBoard(std::string filename)
 {
     //delete previous board if necessary
-    if(board != nullptr){
+    if(board != NULL){
         delete board;
-        board = nullptr;
-        wclear(panel_window(boardPanel));
-        wclear(panel_window(statusPanel));
+        board = NULL;
     }
     //May throw an error if the file does not exist
     board = new Board("boards" + separator() + filename);
-    int height = board->getHeight();
-    int width = board->getWidth();
-    //Throw an error if the board is bigger than the max board size
-    if(height > BOARD_HEIGHT || width > BOARD_WIDTH)
-    {
-        throw "Board is too big!";
-    }
-    width = (width > 0) ? width:1;
-    width = (width <= BOARD_WIDTH-2) ? width:BOARD_WIDTH-2;
-    height = (height > 0) ? height:1;
-    height = (height <= BOARD_HEIGHT-2) ? height:BOARD_HEIGHT-2;
-    //Create a new board window to display the board
-    WINDOW *boardWin = newwin(height+2, width+2, (BOARD_HEIGHT-height)/2-1, (BOARD_WIDTH-width)/2-1);
-    boardPanel = new_panel(boardWin);
-    box(boardWin, 0, 0);
-    //Create window for the bottom status area
-    WINDOW *statusWin = newwin(STATUS_HEIGHT, STATUS_WIDTH, BOARD_HEIGHT, 0);
-    statusPanel = new_panel(statusWin);
-    box(statusWin, 0, 0);
-    updateStatusWin();
+	SDL_RenderClear(mainRenderer);
+    renderStatusPanel();
+	renderBoard();
     updateScreen();
 }
-*/
 
 /*Preconditions: ratio is a double >= 0
 Postconditions: Randomly chooses to toggle each cell of the board, based on ratio
@@ -299,6 +279,7 @@ std::string Controller::getStringInput(std::string message)
 	std::cin >> userInput;
     return userInput;
 }
+
 
 /*
 void Controller::getRules()
@@ -485,7 +466,7 @@ void Controller::renderBoard(SDL_Rect * renderArea)
 
 			cellColor = &this->mainColor;
 			//TODO: make this render a nice box around the cell instead of just changing the color
-			if (this->currentRow == row && this->currentCol == column)
+			if (this->currentRow == row && this->currentCol == column && (getState() == editing || getState() == paused))
 			{
 				SDL_SetRenderDrawColor(mainRenderer, accentColor.r, accentColor.g, accentColor.b, 0xFF);
 				SDL_RenderFillRect(mainRenderer, &cellRect);
@@ -515,18 +496,22 @@ void Controller::renderBoard()
 	renderBoard(boardPanel);
 }
 
-SDL_Point Controller::getCell(int x, int y)
+void Controller::updateRC(int x, int y)
 {
 	//TODO: obviously, make the cell height a data field... this will let you control zoom
 	int cellWidth = boardPanel->w / this->board->getWidth();
 	int cellHeight = boardPanel->h / this->board->getHeight();
 	this->currentCol = (x - boardPanel->x) / cellWidth;
 	this->currentRow = (y - boardPanel->y) / cellHeight;
-	return {currentRow, currentCol};
 }
 
 void Controller::renderStatusPanel(SDL_Rect * renderArea)
 {
+	//if we are in the menu, we can hide the status panel
+	if (state == menu)
+	{
+		return;
+	}
 	std::vector<std::string> stringList;
 	std::ostringstream boardSize, status;
 	//creating string streams for board size and status
@@ -630,36 +615,11 @@ bool Controller::getYesOrNo(std::string dialog)
 /*Preconditions: dialog is a string
 Postconditions: displays dialog to the user, and wait for a keypress
 */
-void Controller::confirmationBox(std::string dialog)
+void Controller::getConfirmationBox(std::string dialog)
 {
 	std::vector<std::string> options;
 	options.push_back("Ok.");
-	ButtonBox buttons(mainFont, mainColor, mainColor, dialog, options, boardPanel->w / 2, boardPanel->h / 2, true);
-	buttons.render(mainRenderer);
-	SDL_RenderPresent(mainRenderer);
-	while (!buttons.hasValidInput())
-	{
-		while (SDL_PollEvent(event) != 0)
-		{
-			if (event->type == SDL_QUIT)
-			{
-				exit(0);
-			}
-			else if (event->type == SDL_MOUSEBUTTONDOWN)
-			{
-				int a, b;
-				SDL_GetMouseState(&a, &b);
-				buttons.updateInput(a, b);
-			}
-			else if (event->type == SDL_MOUSEMOTION)
-			{
-				int a, b;
-				SDL_GetMouseState(&a, &b);
-				buttons.updateHover(a, b);
-			}
-			//TODO: exit if enter key is pressent
-		}
-	}
+	getButtonInput(dialog, options);
 }
 
 //possibly not useful
@@ -806,21 +766,25 @@ double Controller::getRatioInput(std::string message)
     return ratio;
 }
 
+int Controller::getIntInput(std::string message)
+{
+	std::cout << message;
+	int value;
+	std::cin >> value;
+    return value;
+}
+
 /*A sub control loop, allows the user the manually toggle cells and add patterns
 */
 //TODO:add better exit(0) (i.e. actually add a method)
 void Controller::editMode()
 {
-	int x = 0, y = 0, r;
-	SDL_Point cell = getCell(x, y);
+	int x = 0, y = 0;
+	SDL_GetMouseState(&x, &y);
+	updateRC(x, y);
     //loop until we are no longer paused or editing
     while(getState() == paused || getState() == editing)
     {
-		SDL_RenderClear(mainRenderer);
-		renderBoard(this->boardPanel);
-		renderStatusPanel(this->statusPanel);
-		SDL_RenderPresent(mainRenderer);
-		updateScreen();
 		while (SDL_PollEvent(event) != 0)
 		{
 		    switch(this->event->type)
@@ -832,11 +796,11 @@ void Controller::editMode()
 				case SDL_MOUSEMOTION:
 				case SDL_MOUSEBUTTONUP:
 				SDL_GetMouseState(&x, &y);
-				cell = getCell(x, y);
+				updateRC(x, y);
 				break;
 				case SDL_MOUSEBUTTONDOWN:
 				SDL_GetMouseState(&x, &y);
-				cell = getCell(x, y);
+				updateRC(x, y);
 				//TODO: get correct cell!!!
 				this->board->toggle(this->currentRow, this->currentCol);
 				break;
@@ -845,16 +809,23 @@ void Controller::editMode()
 				{
 					case SDLK_UP:
 					this->currentRow--;
+					if (currentRow < 0)
+						currentRow = 0;
 					break;
 					case SDLK_DOWN:
 					this->currentRow++;
-					//TODO:make sure you can't go out of bounds
+					if (currentRow > board->getHeight()-1)
+						currentRow = board->getHeight()-1;
 					break;
 					case SDLK_LEFT:
 					this->currentCol--;
+					if (currentCol < 0)
+						currentCol = 0;
 					break;
 					case SDLK_RIGHT:
 					this->currentCol++;
+					if (currentCol > board->getWidth()-1)
+						currentCol = board->getWidth()-1;
 					break;
 					case SDLK_SPACE:
 					this->board->toggle(this->currentRow, this->currentCol);
@@ -883,6 +854,11 @@ void Controller::editMode()
 				}
 	        }
 		}
+		SDL_RenderClear(mainRenderer);
+		renderBoard(this->boardPanel);
+		renderStatusPanel(this->statusPanel);
+		SDL_RenderPresent(mainRenderer);
+		updateScreen();
 	}
 }
 
@@ -913,19 +889,6 @@ void Controller::runningMode()
 				case SDL_KEYDOWN:
 				switch(this->event->key.keysym.sym)
 				{
-					case SDLK_UP:
-					this->currentRow--;
-					break;
-					case SDLK_DOWN:
-					this->currentRow++;
-					//TODO:make sure you can't go out of bounds
-					break;
-					case SDLK_LEFT:
-					this->currentCol--;
-					break;
-					case SDLK_RIGHT:
-					this->currentCol++;
-					break;
 					case SDLK_RIGHTBRACKET:
 					setSpeed(1);
 					break;

@@ -21,8 +21,6 @@ protected:	//protected variables
 	int births;								//number of births so far
 	int deaths;								//number of deaths so far
 	bool isSaved;							//once the board has been modified, this is false
-	set<int> birthRule;						//sets the birthRule
-	set<int> survivalRule;					//sets the survivalRule
 
 public:	//public functions and variables
 
@@ -47,11 +45,6 @@ public:	//public functions and variables
 	int getBirths();								//returns the number of births that occurred
 	int getDeaths();								//returns the number of deaths that occurred
 	bool getIsSaved();								//returns a boolean value of if the board has been saved
-	void setBirthRule(set<int> input);				//set a new birthing rule set
-	void setSurvivalRule(set<int> input);			//set a new survival rule set
-
-	string getBirthRule();					//return a formatted rule string for births
-	string getSurvivalRule();				//return a formatted rule string for survival
 
 	void render(SDL_Renderer * renderer, SDL_Rect * renderArea, SDL_Point * cursor);
 };

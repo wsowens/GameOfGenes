@@ -29,7 +29,6 @@ void MainMenu(Controller *controller)
 		//Load a saved board
 		case 1:
 		{
-			/*
 			std::string filename = "";
 			bool isFileValid = false;
 			//Loop until we get a valid filename
@@ -41,9 +40,10 @@ void MainMenu(Controller *controller)
 				try
 				{
 					controller->createNewBoard(filename);
-				}catch(char const* message)
+				}
+				catch(char const* message)
 				{
-					controller->ConfirmationBox(message);
+					controller->getConfirmationBox(message);
 					continue;
 				}
 				isFileValid = true;
@@ -52,8 +52,7 @@ void MainMenu(Controller *controller)
 			if(filename == "")
 				break;
 			controller->setState(paused);
-			controller->printBoard(); */
-			std::cout << "Loading boards will come soon.\n";
+			std::cout << "Board loaded.\n";
 			break;
 		}
 		//Load a random board
@@ -72,18 +71,15 @@ void MainMenu(Controller *controller)
 		//Load the pattern editor
 		case 3:
 		{
-			/*
-			int height = 0;
-			int width = 0;
-			controller->GetPatternDimensions(height, width);
+			int height = controller->getIntInput("Enter height: ");
+			int width = controller->getIntInput("Enter width: ");
 			//If the user entered nothing, cancel loading the pattern editor
 			if(height == 0 && width == 0)
 				break;
 			controller->createNewBoard(false, height, width);
 			controller->setState(editing);
-			controller->printBoard();
+			controller->renderBoard();
 			break;
-			*/
 			std::cout << "coming soon sorry\n";
 			break;
 		}
@@ -158,12 +154,10 @@ int main(int argc, char** args)
     Controller *controller = new Controller(gWindow);
 	std::cout << "controller constructed\n";
 	controller->printPanelDimensions();
-    controller->updateScreen();
 	std::cout << "screen updated\n";
 	controller->printPanelDimensions();
 	MainMenu(controller);
 	std::cout << "main menu completed\n";
-    controller->updateScreen();
 	//Main control loop
 	while (controller->getState() != exiting)
 	{

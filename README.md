@@ -1,2 +1,2 @@
-# GameOfLife
-An implementation of Conway's game of life in C++, with some extra fun features.
+# Game of Genes
+An implementation of Conway's game of life in C++ (and SDL), with some fun extra features.

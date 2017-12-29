@@ -15,8 +15,6 @@ Board::Board(bool wrap, int h, int w): matrix(h, vector<bool> (w, 0))
 	this->births = 0;
 	this->deaths = 0;
 	isSaved = true;
-	birthRule = {3,};
-	survivalRule = {2, 3,};
 }
 
 //a constructor for the board class if just a filename is given
@@ -31,12 +29,14 @@ Board::Board(string filename)
 	deaths = data.deaths;
 	isSaved = true;
 	matrix = data.matrix;
-	birthRule = data.birthRule;
-	survivalRule = data.survivalRule;
 }
 
 void Board::toggle(int r, int c)	//toggles the cell from true to false or false to true
 {
+	if (r < 0 || r >= height || c < 0 || c >= width)
+	{
+		return;
+	}
 	matrix[r][c] = !matrix[r][c];
 	isSaved = false;
 }
@@ -121,7 +121,7 @@ void Board::runIteration()
 		{
 			if(matrix[r][c] == 1)	//if the cell is alive (equal to 1)
 			{
-				if(survivalRule.find(nMatrix[r][c]) == survivalRule.end())
+				if(nMatrix[r][c] != 2 && nMatrix[r][c] != 3)
 				{
 					toggle(r, c);
 					deaths++;
@@ -129,7 +129,7 @@ void Board::runIteration()
 			}
 			else	//if the cell is dead (equal to 0)
 			{
-				if(birthRule.find(nMatrix[r][c]) != birthRule.end())
+				if(nMatrix[r][c] == 3)
 				{
 					toggle(r, c);
 					births++;
@@ -173,8 +173,6 @@ void Board::printBoard()
 			cout << cell << " ";
 		cout << endl;
 	}
-	cout << "Birth Rule: " << set2rule(birthRule) << endl;
-	cout << "Survival Rule: " << set2rule(survivalRule) << endl;
 	cout << endl;
 }
 
@@ -188,8 +186,6 @@ void Board::saveState(string fileName)
 	out << iterations << endl;	//tells the program how many iterations there were
 	out << births << endl;	//how many births there were
 	out << deaths << endl;	//how many deaths there were
-	out << set2rule(birthRule) << endl;  //rule for cells to spawn
-	out << set2rule(survivalRule) << endl; //rule for cells to live
 	for (int i = 0; i < height; i++)	//tells the program what the matrix actually looked like
 	{
 		for (int j = 0; j < width; j++)
@@ -300,27 +296,10 @@ bool Board::getIsSaved()
 	return isSaved;
 }
 
-void Board::setBirthRule(set<int> input)
-{
-	birthRule = input;
-}
-
-void Board::setSurvivalRule(set<int> input)
-{
-	survivalRule = input;
-}
-
-string Board::getBirthRule()
-{
-	return set2rule(birthRule);
-}
-
-string Board::getSurvivalRule()
-{
-	return set2rule(survivalRule);
-}
-
-//TODO: add zoom
+/*
+	Everything below here is for testing purposes only.
+*/
+/*
 bool filled = false;
 void Board::render(SDL_Renderer * renderer, SDL_Rect * renderArea, SDL_Point * cursor)
 {
@@ -342,7 +321,6 @@ void Board::render(SDL_Renderer * renderer, SDL_Rect * renderArea, SDL_Point * c
 				cellRect.w = cellWidth - 1;
 				cellRect.h = cellWidth - 1;
 			}
-
 			cellColor = &consoleGreen;
 			if ((cursor->x >= x && cursor->x <= (x + cellWidth-1) ) && (cursor->y >= y && cursor->y <= (y + cellHeight - 1)))
 			{
@@ -360,8 +338,6 @@ void Board::render(SDL_Renderer * renderer, SDL_Rect * renderArea, SDL_Point * c
 	SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
 }
 
-//FOR TESTING ONLY
-/*
 SDL_Window * gWindow = NULL;
 SDL_Renderer * gRenderer = NULL;
 
@@ -449,13 +425,13 @@ int main(int argc, char** argv)
 
 	SDL_Point pos = {100, 100};
 	SDL_Rect rect = {200, 100, 400, 400};
-	cout << "Add a board called test\n";
-	Board test(false, height, width);
+	cout << "Add a board called empty\n";
+	Board empty(false, height, width);
 
 	cout << "Print out the matrix:\n";
-	test.printBoard();
+	empty.printBoard();
 	SDL_RenderClear(gRenderer);
-	test.render(gRenderer, &rect, &pos);
+	empty.render(gRenderer, &rect, &pos);
 	SDL_RenderPresent(gRenderer);
 	cout << endl;
 	while (loop)
@@ -474,8 +450,36 @@ int main(int argc, char** argv)
 	}
 	loop = true;
 
-	cout << "Add a pattern called patterntest.txt and then print out the matrix\n";
-	test.addPattern("./boards/_smile.brd", 0, 0);
+	cout << "Opening smile.brd\n";
+
+
+	cout << "add pattern\n";
+	Board pattern("./patterns/gosperglidergun.rle");
+	empty.addPattern(pattern.getMatrix(), 0, 0);
+	SDL_RenderClear(gRenderer);
+	empty.render(gRenderer, &rect, &pos);
+	SDL_RenderPresent(gRenderer);
+	cout << endl;
+	while (loop)
+	{
+		while (SDL_PollEvent(e) != 0)
+		{
+			if (e->type == SDL_QUIT)
+			{
+				return 0;
+			}
+			else if (e->type == SDL_MOUSEBUTTONDOWN)
+			{
+				loop = false;
+			}
+		}
+	}
+	loop = true;
+
+	cout << "Opening smile.brd\n";
+
+	string filename = "./boards/smile.brd";
+	Board test(filename);
 	test.printBoard();
 	SDL_RenderClear(gRenderer);
 	test.render(gRenderer, &rect, &pos);
