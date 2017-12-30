@@ -2,6 +2,17 @@
 #include <exception>
 #include <sstream>
 
+int greatestCommonFactor(int a, int b)
+{
+	while (b != 0)
+	{
+		int temp = b;
+		b = a % b;
+		a = temp;
+	}
+	return a;
+}
+
 Controller::Controller(SDL_Window * window)
 {
 	std::cerr << "controller constructor called\n";
@@ -40,6 +51,12 @@ Controller::Controller(SDL_Window * window)
 
 	std::cerr << "Status panel: " << this->statusPanel->w << " " << this->statusPanel->h << std::endl;
 	std::cerr << "Status pointer: " << this->statusPanel << std::endl;
+
+	int gcf = greatestCommonFactor(this->boardPanel->w, this->boardPanel->h);
+
+	xStep = this->boardPanel->w / gcf;
+	yStep = this->boardPanel->h / gcf;
+
 	this->event = new SDL_Event();
 	this->mainColor = {0, 0xFF, 0};
 	this->bgColor = {0, 0, 0};
@@ -101,7 +118,13 @@ void Controller::createNewBoard(bool wrapAround, int height, int width)
     height = (height <= BOARD_HEIGHT-2) ? height:BOARD_HEIGHT-2;
 	*/
 	board = new Board(wrapAround, height, width);
-    SDL_RenderClear(mainRenderer);
+	cellWidth = boardPanel->w / this->board->getWidth();
+	cellHeight = boardPanel->h / this->board->getHeight();
+
+	this->boardPosition->x = 0;
+	this->boardPosition->y = 0;
+
+	SDL_RenderClear(mainRenderer);
 	renderStatusPanel();
 	renderBoard();
     updateScreen();
@@ -145,10 +168,11 @@ int Controller::getSpeed()
 
 /*Postconditions: returns the current save status of the board
 */
+/*
 bool Controller::isSaved()
 {
     return board->getIsSaved();
-}
+}*/
 
 /*Postconditions: returns controller state
 */
@@ -228,6 +252,121 @@ void Controller::setSpeed(int newSpeed)
     speed += newSpeed;
 }
 
+void Controller::setPan(int x, int y)
+{
+	boardPosition->x -= (x - boardPanel->w / 2) * 10 / boardPanel->w * cellWidth / 40;
+	boardPosition->y -= (y - boardPanel->h / 2) * 10 / boardPanel->h * cellHeight / 40;
+	/*
+	if (x * 4 / boardPanel->w < (boardPanel->w / 2 / cellWidth))
+	{
+		boardPosition->x += cellWidth / 2;
+	}
+	else
+	{
+		boardPosition->x -= cellWidth / 2;
+	}*/
+	checkRC();
+}
+
+void Controller::setZoom(int amount)
+{
+	//put it all in a for loop
+	//check that the cellWidth > 0
+	if (cellWidth + amount <= 2)
+	{
+		return;
+	}
+	//TODO: zoom if one of the dimensions can fit inside
+	//maybe even zoom in that direction?
+
+
+
+	//TODO: for loops suck, use a series instead
+	for (int i = 0; i < amount; i++)
+	{
+		std::cout << currentCol << std::endl;
+		//std::cout << (boardPanel->w - cellWidth + 1) << " " << (currentCol * cellWidth + boardPosition->x + 1) + 1 << std::endl;
+		//std::cout << (boardPanel->w - cellWidth + 1) / (currentCol * cellWidth + boardPosition->x + 1) + 1 << std::endl;
+		//int freq = (boardPanel->w - cellWidth + 1) / (currentCol * cellWidth + boardPosition->x + 1) + 1;
+		//boardPosition->x -= currentCol + ((cellWidth % board->getWidth() / (currentCol+1) == 0) ? 1 : 0);
+		//boardPosition->y -= currentRow + ((cellWidth % board->getHeight() / (currentRow+1) == 0) ? 1 : 0);
+		boardPosition->x -= currentCol + (cellWidth % 2);
+		boardPosition->y -= currentRow + (cellWidth % 2);
+		cellWidth++;
+		cellHeight++;
+	}
+	for (int i = 0; i > amount; i--)
+	{
+		cellWidth--;
+		cellHeight--;
+		boardPosition->x += currentCol + (cellWidth % 2);
+		boardPosition->y += currentRow + (cellHeight % 2);
+	}
+
+	if (board->getWidth() * cellWidth <= boardPanel->w)
+	{
+		boardPosition->x = (boardPanel->w - cellWidth * board->getWidth()) / 2;
+	}
+	else
+	{
+		if (boardPosition->x < 0)
+		{
+			if (board->getWidth() * cellWidth + boardPosition->x < boardPanel->x + boardPanel->w)
+			{
+				boardPosition->x = boardPanel->x + boardPanel->w - cellWidth * board->getWidth();
+			}
+		}
+		else if (boardPosition->x > 0)
+		{
+			if (boardPosition->x > boardPanel->x)
+			{
+				boardPosition->x = boardPanel->x;
+			}
+		}
+	}
+	if (board->getHeight() * cellHeight <= boardPanel->h)
+	{
+		boardPosition->y = (boardPanel->h - cellHeight * board->getHeight())/2;
+	}
+	else
+	{
+		if (boardPosition->y < 0)
+		{
+			if (board->getHeight() * cellHeight + boardPosition->y < boardPanel->y + boardPanel->h)
+			{
+				boardPosition->y = boardPanel->y + boardPanel->h - cellHeight * board->getHeight();
+			}
+		}
+		else if (boardPosition->y > 0)
+		{
+			if (boardPosition->y > boardPanel->y)
+			{
+				boardPosition->y = boardPanel->y;
+			}
+		}
+	}
+	checkRC();
+
+	/*
+	boardPosition->x -= (amount * (currentCol * cellWidth + boardPosition->x));
+	boardPosition->y -= (amount * (currentRow * cellHeight + boardPosition->y));
+
+	cellWidth += amount;
+	cellHeight += amount;
+	*/
+	//amount is substracted, because generally positive zoom = more zoomed in
+	//thus a positive zoom means we must remove cells
+
+}
+
+void Controller::resetZoom()
+{
+	cellWidth = boardPanel->w / this->board->getWidth();
+	cellHeight = boardPanel->h / this->board->getHeight();
+
+	this->boardPosition->x = 0;
+	this->boardPosition->y = 0;
+}
 /*Postconditions: Updates the status windows, based on the current values of
                 height, width, state, iterations, birth, death, and speed
 */
@@ -269,6 +408,7 @@ void Controller::updateStatusWin()
     mvwprintw(statusWin, 2, STATUS_WIDTH-15, "K: Keybindings");
     updateScreen();
 } */
+
 /*Preconditions: message is a string object
 Postconditions: Prompts the user with message, and gets string input from the user
 */
@@ -281,172 +421,6 @@ std::string Controller::getStringInput(std::string message)
 }
 
 
-/*
-void Controller::getRules()
-{
-    //Show the cursor
-    curs_set(TRUE);
-    //Create the fields and configure them
-    FIELD *field[5];
-	int rows, cols;
-	field[0] = new_field(1, 20, 2, 0, 0, 0);
-    field[1] = new_field(1, 10, 2, 22, 0, 0);
-    field[2] = new_field(1, 20, 3, 0, 0, 0);
-    field[3] = new_field(1, 10, 3, 22, 0, 0);
-	field[4] = NULL;
-    field_opts_off(field[0], O_ACTIVE);
-    set_field_buffer(field[0], 0, "Birth Rule: ");
-	set_field_back(field[1], A_UNDERLINE);
-	field_opts_off(field[1], O_AUTOSKIP);
-    set_field_type(field[1], TYPE_INTEGER, 0, 0, 123456789);
-    field_opts_off(field[2], O_ACTIVE);
-    set_field_buffer(field[2], 0, "Survival Rule: ");
-    set_field_back(field[3], A_UNDERLINE);
-	field_opts_off(field[3], O_AUTOSKIP);
-    set_field_type(field[3], TYPE_INTEGER, 0, 0, 123456789);
-    //Create the form
-    FORM *form = new_form(field);
-    scale_form(form, &rows, &cols);
-    WINDOW *formWin = newwin(rows + 4, cols + 4, termRow / 2 - (rows + 4) / 2, termCol / 2 - cols / 2);
-    PANEL *formPanel = new_panel(formWin);
-    keypad(formWin, TRUE);
-    set_form_win(form, formWin);
-    WINDOW* subFormWin = derwin(formWin, rows, cols, 2, 2);
-    set_form_sub(form, subFormWin);
-    box(formWin, 0, 0);
-    printCenter(formWin, "Enter rules:", 1, cols + 4);
-    //display the form
-    post_form(form);
-    show_panel(formPanel);
-    updateScreen();
-    set<int> birthTemp, survivalTemp;
-    bool birthSelected = true;
-    wchar_t ch;
-	int value = 0;
-    //Loop until the user enters valid values for both fields and presses enter
-    while((ch = wgetch(formWin)))
-    {
-        switch(ch)
-        {
-            //Switch fields
-            case KEY_UP:
-            case KEY_DOWN:
-            case '\t':
-                form_driver(form, REQ_NEXT_FIELD );
-                birthSelected = birthSelected ? false : true;
-                birthTemp = rule2set(string(field_buffer(field[1], 0)));
-                survivalTemp = rule2set(string(field_buffer(field[3], 0)));
-                break;
-            case KEY_LEFT:
-				form_driver(form, REQ_PREV_CHAR);
-				break;
-            case KEY_RIGHT:
-				form_driver(form, REQ_NEXT_CHAR);
-				break;
-            //Delete the character before the cursor
-            case '\b':
-            case KEY_BACKSPACE:
-                form_driver(form, REQ_PREV_CHAR);
-
-                //remove deleted character from set
-                if(birthSelected)
-					birthTemp.erase((char)winch(subFormWin) - '0');
-				else
-					survivalTemp.erase((char)winch(subFormWin) - '0');
-
-                form_driver(form, REQ_DEL_CHAR);
-                break;
-
-            //Delete the character at the cursor
-            case KEY_DC:
-                //remove deleted character from set
-                if(birthSelected)
-					birthTemp.erase((char)winch(subFormWin) - '0');
-				else
-					survivalTemp.erase((char)winch(subFormWin) - '0');
-
-                form_driver(form, REQ_DEL_CHAR);
-                break;
-
-            //Check the values of the fields
-            //If one is not filled, use the enter key to switch fields
-            case 10:
-                form_driver(form, REQ_VALIDATION);
-                //set the new rules
-                board->setBirthRule(rule2set(string(field_buffer(field[1], 0))));
-                board->setSurvivalRule(rule2set(string(field_buffer(field[3], 0))));
-                //delete the form
-                curs_set(FALSE);
-                unpost_form(form);
-                free_form(form);
-                for(int i = 0; i < 4; ++i)
-                {
-                    free_field(field[i]);
-                }
-                hide_panel(formPanel);
-                delwin(formWin);
-                del_panel(formPanel);
-                updateStatusWin();
-                updateScreen();
-                return;
-            case 27:
-				return;
-            //Add the character to the field
-            default:
-                form_driver(form, REQ_VALIDATION);
-				value = atoi((char*)&ch);
-						form_driver(form, REQ_END_FIELD);
-				if(birthSelected)
-				{
-					birthTemp = rule2set(string(field_buffer(field[1], 0)));
-					if(birthTemp.find(value) == birthTemp.end())
-					{
-						form_driver(form, ch);
-						birthTemp = rule2set(string(field_buffer(field[1], 0)));
-
-					}
-				}
-				else
-				{
-					survivalTemp = rule2set(string(field_buffer(field[3], 0)));
-					if(survivalTemp.find(value) == survivalTemp.end())
-					{
-						form_driver(form, ch);
-						survivalTemp = rule2set(string(field_buffer(field[3], 0)));
-					}
-				}
-                break;
-        }
-    }
-}
-*/
-
-/*Postconditions: displays the board in the board window
-*/
-//TODO: delete this
-/*
-void Controller::printBoard()
-{
-    std::vector<std::vector<bool>> matrix = board->getMatrix();
-    for (int r = 0; r < board->getHeight(); r++)
-    {
-        for (int c=0; c < board->getWidth(); c++)
-        {
-            if(matrix[r][c])
-                waddch(win, 'X');
-            else
-                waddch(win, ' ');
-
-        }
-        //move to the next row
-        wmove(win, r+2, 1);
-    }
-    show_panel(boardPanel);
-    updateScreen();
-    //move cursor back to its original position
-    wmove(win, y, x);
-}
-*/
 void Controller::renderBoard(SDL_Rect * renderArea)
 {
 	std::cerr << "render board called\n";
@@ -454,14 +428,12 @@ void Controller::renderBoard(SDL_Rect * renderArea)
 	printPanelDimensions();
 	std::vector<std::vector<bool>> matrix = board->getMatrix();
 
-	int cellWidth = renderArea->w / this->board->getWidth();
-	int cellHeight = renderArea->h / this->board->getHeight();
-	for (int row = 0; row < this->board->getHeight(); row++)
+	for (int row = 0; row < board->getHeight(); row++)
 	{
-		for (int column = 0; column < this->board->getWidth(); column++)
+		for (int column = 0; column < board->getWidth(); column++)
 		{
-			int y = renderArea->y + cellHeight * row;
-			int x = renderArea->x + cellWidth * column;
+			int y = renderArea->y + cellHeight * row + boardPosition->y;
+			int x = renderArea->x + cellWidth * column + boardPosition->x;
 			SDL_Rect cellRect = {x, y, cellWidth, cellHeight};
 
 			cellColor = &this->mainColor;
@@ -492,17 +464,48 @@ void Controller::renderBoard(SDL_Rect * renderArea)
 
 void Controller::renderBoard()
 {
-	SDL_Point temp = {-1, -1};
 	renderBoard(boardPanel);
 }
+
 
 void Controller::updateRC(int x, int y)
 {
 	//TODO: obviously, make the cell height a data field... this will let you control zoom
-	int cellWidth = boardPanel->w / this->board->getWidth();
-	int cellHeight = boardPanel->h / this->board->getHeight();
-	this->currentCol = (x - boardPanel->x) / cellWidth;
-	this->currentRow = (y - boardPanel->y) / cellHeight;
+	this->currentCol = (x - boardPanel->x - boardPosition->x) / cellWidth;
+	this->currentRow = (y - boardPanel->y - boardPosition->y) / cellHeight;
+}
+
+void Controller::checkRC()
+{
+	//checking that currentRow and currentCol are in possible ranges
+	if (currentRow < 0)
+		currentRow = 0;
+	else if (currentRow > board->getHeight() - 1)
+		currentRow = board->getHeight() - 1;
+	if (currentCol < 0)
+		currentCol = 0;
+	else if (currentCol > board->getWidth() - 1)
+		currentCol = board->getWidth() - 1;
+
+	//adjusts camera if row or col is out of range
+	if (currentRow * cellHeight + boardPosition->y < boardPanel->y)
+	{
+		std::cout << "boardPosition before: " << boardPosition->y << std::endl;
+		boardPosition->y = (boardPanel->y - (currentRow * cellHeight));
+		std::cout << "boardPosition after: " << boardPosition->y << std::endl;
+	}
+	else if ((currentRow + 1) * cellHeight + boardPosition->y > (boardPanel->y + boardPanel->h))
+	{
+		boardPosition->y = (boardPanel->y + boardPanel->h ) - (currentRow + 1) * cellHeight;
+	}
+	if (currentCol * cellWidth + boardPosition->x < boardPanel->x)
+	{
+		boardPosition->x = (boardPanel->x - (currentCol * cellWidth));
+	}
+	else if ((currentCol + 1) * cellWidth + boardPosition->x > (boardPanel->x + boardPanel->w))
+	{
+		boardPosition->x = (boardPanel->x + boardPanel->w ) - (currentCol + 1) * cellWidth;
+	}
 }
 
 void Controller::renderStatusPanel(SDL_Rect * renderArea)
@@ -512,6 +515,8 @@ void Controller::renderStatusPanel(SDL_Rect * renderArea)
 	{
 		return;
 	}
+	SDL_RenderFillRect(mainRenderer, renderArea);
+
 	std::vector<std::string> stringList;
 	std::ostringstream boardSize, status;
 	//creating string streams for board size and status
@@ -783,6 +788,7 @@ void Controller::editMode()
 	SDL_GetMouseState(&x, &y);
 	updateRC(x, y);
     //loop until we are no longer paused or editing
+	bool doPan = false;
     while(getState() == paused || getState() == editing)
     {
 		while (SDL_PollEvent(event) != 0)
@@ -793,43 +799,63 @@ void Controller::editMode()
 				std::cout << "exiting...\n";
 				exit(-1); //TODO: exit more gracefully
 				break;
-				case SDL_MOUSEMOTION:
+
+
 				case SDL_MOUSEBUTTONUP:
+					std::cout << "button released\n";
+					if (event->button.button == SDL_BUTTON_LEFT)
+					{
+						std::cout << "left button released\n";
+					}
+					else if (event->button.button == SDL_BUTTON_RIGHT)
+					{
+						std::cout << "right button released\n";
+						doPan = false;
+					}
+				case SDL_MOUSEMOTION:
 				SDL_GetMouseState(&x, &y);
 				updateRC(x, y);
 				break;
 				case SDL_MOUSEBUTTONDOWN:
 				SDL_GetMouseState(&x, &y);
 				updateRC(x, y);
-				//TODO: get correct cell!!!
-				this->board->toggle(this->currentRow, this->currentCol);
-				break;
+				std::cout << "mouse button down\n";
+					if (event->button.button == SDL_BUTTON_LEFT)
+					{
+						std::cout << "left button down\n";
+						this->board->toggle(this->currentRow, this->currentCol);
+					}
+					else if (event->button.button == SDL_BUTTON_RIGHT)
+					{
+						std::cout << "right button down\n";
+						doPan = true;
+					}
+				break; //TODO: consider removing
+				case SDL_MOUSEWHEEL:
+					setZoom(event->wheel.y);
 				case SDL_KEYDOWN:
 				switch(this->event->key.keysym.sym)
 				{
 					case SDLK_UP:
 					this->currentRow--;
-					if (currentRow < 0)
-						currentRow = 0;
+					checkRC();
 					break;
 					case SDLK_DOWN:
 					this->currentRow++;
-					if (currentRow > board->getHeight()-1)
-						currentRow = board->getHeight()-1;
+					checkRC();
 					break;
 					case SDLK_LEFT:
 					this->currentCol--;
-					if (currentCol < 0)
-						currentCol = 0;
+					checkRC();
 					break;
 					case SDLK_RIGHT:
 					this->currentCol++;
-					if (currentCol > board->getWidth()-1)
-						currentCol = board->getWidth()-1;
+					checkRC();
 					break;
 					case SDLK_SPACE:
 					this->board->toggle(this->currentRow, this->currentCol);
 					break;
+					case SDLK_KP_ENTER:
 					case SDLK_RETURN:
 					runIteration();
 					break;
@@ -839,11 +865,24 @@ void Controller::editMode()
 					case SDLK_LEFTBRACKET:
 					setSpeed(-1);
 					break;
+					case SDLK_KP_PLUS:
+					case SDLK_PLUS:
+					case SDLK_EQUALS:
+					setZoom(1);
+					break;
+					case SDLK_KP_MINUS:
+					case SDLK_MINUS:
+					setZoom(-1);
+					break;
+					case SDLK_r:
+					resetZoom();
+					break;
 					case SDLK_h:
 					keybindingsBox();
 					break;
 					case SDLK_a:
 					std::cout << currentRow << " " << currentCol << std::endl;
+					std::cout << (currentRow * cellHeight + boardPosition->y) << std::endl;
 					addPattern(this->currentRow, this->currentCol);
 					break;
 					case SDLK_p:
@@ -854,6 +893,11 @@ void Controller::editMode()
 				}
 	        }
 		}
+
+		if (doPan)
+			setPan(x,y);
+			setZoom(0);
+
 		SDL_RenderClear(mainRenderer);
 		renderBoard(this->boardPanel);
 		renderStatusPanel(this->statusPanel);

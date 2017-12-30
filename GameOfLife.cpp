@@ -151,7 +151,40 @@ int main(int argc, char** args)
 	{
 		std::cout << "initialization complete\n";
 	}
-    Controller *controller = new Controller(gWindow);
+	/*
+	SDL_Event * eve = new SDL_Event();
+
+	bool doExit = false;
+
+	while (!doExit)
+	{
+		while(SDL_PollEvent(eve) != 0)
+		{
+			if (eve->type == SDL_MOUSEWHEEL)
+			{
+				std::cout << "Event Wheel X: " << eve->wheel.x << std::endl;
+				std::cout << "Event Wheel Y: " << eve->wheel.y << std::endl;
+				std::cout << "Event Wheel Direction: " << eve->wheel.direction << std::endl;
+			}
+			else if (eve->type == SDL_MOUSEBUTTONDOWN)
+			{
+				std::cout << "mouse button down\n";
+				if (eve->button.button == SDL_BUTTON_MIDDLE)
+				{
+					std::cout << eve->button.x << std::endl;
+					std::cout << eve->button.y << std::endl;
+				}
+			}
+		}
+	}
+
+	if (doExit)
+	{
+		std::cout << "Exiting." << std::endl;
+		exit(0);
+	}
+	*/
+	Controller *controller = new Controller(gWindow);
 	std::cout << "controller constructed\n";
 	controller->printPanelDimensions();
 	std::cout << "screen updated\n";

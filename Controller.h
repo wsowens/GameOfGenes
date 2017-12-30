@@ -30,14 +30,22 @@ class Controller
 	SDL_Renderer * mainRenderer;
 	SDL_Event * event;
 
-
 	SDL_Rect * boardPanel = new SDL_Rect;
 	SDL_Rect * statusPanel = new SDL_Rect;
+
 
 	int currentRow = -1;
 	int currentCol = -1;
 
+	int cellWidth = 2;
+	int cellHeight = 2;
+
+	int xStep = 1;
+	int yStep = 1;
+	SDL_Point * boardPosition = new SDL_Point;
+
 	void updateRC(int x, int y);
+	void checkRC();
 private:
 	void renderBoard(SDL_Rect * renderArea);
 	void renderStatusPanel(SDL_Rect * renderArea);
@@ -71,6 +79,9 @@ private:
         void saveCurrent();
         void setState(controlState newState);
         void setSpeed(int newSpeed);
+		void setPan(int x, int y);
+		void setZoom(int amount);
+		void resetZoom();
 
 		void updateScreen();
 		void renderBoard();
@@ -78,7 +89,7 @@ private:
 
         void renderPattern(std::vector<std::vector<bool>>, int x, int y);
 		void addPattern(int startR, int startC);
-		
+
 		void runIteration();
 
 		void printPanelDimensions();
