@@ -1,8 +1,5 @@
 #include "Board.h"
 
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 600
-
 using namespace std;
 
 //a constructor for the Board class if height, width, and wraparound options are chosen
@@ -33,6 +30,7 @@ Board::Board(string filename)
 
 void Board::toggle(int r, int c)	//toggles the cell from true to false or false to true
 {
+	//checking out of bounds condition
 	if (r < 0 || r >= height || c < 0 || c >= width)
 	{
 		return;
@@ -41,6 +39,15 @@ void Board::toggle(int r, int c)	//toggles the cell from true to false or false 
 	isSaved = false;
 }
 
+void Board:: toggle(int r, int c, bool isLiving)
+{
+	//checking out of bounds condition
+	if (r < 0 || r >= height || c < 0 || c >= width)
+	{
+		return;
+	}
+	matrix[r][c] = isLiving;
+}
 //allows a board to be randomly generated
 void Board::randomize(double ratio)
 {
@@ -299,6 +306,32 @@ bool Board::getIsSaved()
 /*
 	Everything below here is for testing purposes only.
 */
+
+
+/*
+#include "Pattern.h"
+
+int main()
+{
+	srand(time(0));
+	std::cout << "About to start!" << std::endl;
+	Board board(false, 50, 50);
+	Pattern other("./boards/smile.brd");
+	std::cout << "Adding a pattern the board 1000000 times" << std::endl;
+	int count = 0;
+	while (count++ < 1000000)
+	{
+		if (count % 1000 == 0)
+			std::cout << count << std::endl;
+		board.addPattern(other.getMatrix(), 0, 0);
+		board.randomize();
+	}
+}
+*/
+
+//#define SCREEN_WIDTH 800
+//#define SCREEN_HEIGHT 600
+
 /*
 bool filled = false;
 void Board::render(SDL_Renderer * renderer, SDL_Rect * renderArea, SDL_Point * cursor)

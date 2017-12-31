@@ -7,7 +7,7 @@
 #include <string>
 #include "Formats.h"
 #include "Util.h"
-#include <SDL2/SDL.h>
+//#include <SDL2/SDL.h>
 
 class Board
 {
@@ -27,6 +27,8 @@ public:	//public functions and variables
 	Board(bool wrapAround, int height, int width);	//a constructor for the Board class if height, width, and wraparound options are chosen
 	Board(std::string filename);					//a constructor for the board class if just a filename is given
 	void toggle(int r, int c);						//toggles the cell from true to false or false to true
+	void toggle(int r, int c, bool living);
+
 	void randomize(double ratio=0.5);					//allows a board to be randomly generated
 	void runIteration();							//runs one iteration (for example, when the user presses the "Enter" key in the GameOfLife)
 	void runIteration(int runs);					//runs the interation the correct number of times
@@ -46,7 +48,7 @@ public:	//public functions and variables
 	int getDeaths();								//returns the number of deaths that occurred
 	bool getIsSaved();								//returns a boolean value of if the board has been saved
 
-	void render(SDL_Renderer * renderer, SDL_Rect * renderArea, SDL_Point * cursor);
+	//void render(SDL_Renderer * renderer, SDL_Rect * renderArea, SDL_Point * cursor);
 };
 
 

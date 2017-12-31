@@ -218,11 +218,6 @@ BoardData loadBRD(string filename)
 	set<int> birthRule;
 	set<int> survivalRule;
 
-	// load the rules (in the form of a string of numbers in ascii
-	getline(in, line);
-	birthRule = rule2set(line);
-	getline(in, line);
-	survivalRule = rule2set(line);
 
 	BoardData ret = {wrapAround, height, width, iterations,
 					births, deaths, birthRule, survivalRule,
