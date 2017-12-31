@@ -2,29 +2,20 @@
 #include <exception>
 #include <sstream>
 
-int greatestCommonFactor(int a, int b)
-{
-	while (b != 0)
-	{
-		int temp = b;
-		b = a % b;
-		a = temp;
-	}
-	return a;
-}
-
 Controller::Controller(SDL_Window * window)
 {
 	std::cerr << "controller constructor called\n";
 	if (window == NULL)
 	{
 		std::cerr << "WINDOW IS NULL";
+		throw "Window failed to create.";
 	}
 	this->mainRenderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
 	if( mainRenderer == NULL )
 	{
 		std::cerr << "Renderer could not be created! SDL Error: " << SDL_GetError() << std::endl;
+		throw "Renderer failed to create.";
 	}
     //Set default speed to 25
     speed = 25;
@@ -33,46 +24,46 @@ Controller::Controller(SDL_Window * window)
 	SDL_GetWindowSize(window, &windowWidth, &windowHeight);
 	std::cerr << windowWidth << " height: " << windowHeight << std::endl;
 
+	//TODO: add options to make this mutable
+	this->boardPanel = {0, 0, windowWidth, windowHeight * 5 / 6};
 
-	std::cerr << "Board pointer: " << this->boardPanel << std::endl;
+	std::cerr << "Board panel: " << boardPanel.w << " " << boardPanel.h << std::endl;
 
-	this->boardPanel->x = 0;
-	this->boardPanel->y = 0;
-	this->boardPanel->w = windowWidth;
-	this->boardPanel->h = windowHeight * 5 / 6;
+	this->statusPanel = {0,  windowHeight * 5 / 6, windowWidth, windowHeight / 6};
 
-	std::cerr << "Board panel: " << boardPanel->w << " " << boardPanel->h << std::endl;
+	std::cerr << "Status panel: " << this->statusPanel.w << " " << this->statusPanel.h << std::endl;
 
+	this->boardPosition = {0, 0};
+	/*
+	int gcf = greatestCommonFactor(this->boardPanel.w, this->boardPanel.h);
+	xStep = this->boardPanel.w / gcf;
+	yStep = this->boardPanel.h / gcf;
+	*/
 
-	this->statusPanel->x = 0;
-	this->statusPanel->y = windowHeight * 5 / 6;
-	this->statusPanel->w = windowWidth;
-	this->statusPanel->h = windowHeight / 6;
-
-	std::cerr << "Status panel: " << this->statusPanel->w << " " << this->statusPanel->h << std::endl;
-	std::cerr << "Status pointer: " << this->statusPanel << std::endl;
-
-	int gcf = greatestCommonFactor(this->boardPanel->w, this->boardPanel->h);
-
-	xStep = this->boardPanel->w / gcf;
-	yStep = this->boardPanel->h / gcf;
-
-	this->event = new SDL_Event();
 	this->mainColor = {0, 0xFF, 0};
 	this->bgColor = {0, 0, 0};
 	this->accentColor = {0xFF, 0xFF, 0xFF};
     state = menu;
-	this->mainFont = TTF_OpenFont("./assets/consola.ttf", 16);
 
+	this->mainFont = TTF_OpenFont("./assets/consola.ttf", 16);
+}
+
+Controller::~Controller()
+{
+	TTF_CloseFont(mainFont);
+	if (board != nullptr)
+	{
+		delete board;
+		board = nullptr;
+	}
+	
 }
 
 void Controller::printPanelDimensions()
 {
 	std::cerr << "Print method called\n";
-	std::cerr << "Board panel: " << boardPanel->w << " " << boardPanel->h << std::endl;
-	std::cerr << "Board pointer: " << this->boardPanel << std::endl;
-	std::cerr << "Status panel: " << this->statusPanel->w << " " << this->statusPanel->h << std::endl;
-	std::cerr << "Status pointer: " << this->statusPanel << std::endl;
+	std::cerr << "Board panel: " << boardPanel.w << " " << boardPanel.h << std::endl;
+	std::cerr << "Status panel: " << this->statusPanel.w << " " << this->statusPanel.h << std::endl;
 }
 /*Postconditions: updates the terminal screen
 */
@@ -103,10 +94,10 @@ void Controller::createNewBoard(bool wrapAround, int height, int width)
 {
     //delete the old board if necessary
 	std::cerr << "creating new board\n";
-    if (board != NULL)
+    if (board != nullptr)
     {
         delete board;
-        board = NULL;
+        board = nullptr;
 	    //TODO: possibly clear renderer here
     }
     //check the height and width and adjust if necessary
@@ -118,11 +109,10 @@ void Controller::createNewBoard(bool wrapAround, int height, int width)
     height = (height <= BOARD_HEIGHT-2) ? height:BOARD_HEIGHT-2;
 	*/
 	board = new Board(wrapAround, height, width);
-	cellWidth = boardPanel->w / this->board->getWidth();
-	cellHeight = boardPanel->h / this->board->getHeight();
+	cellWidth = boardPanel.w / this->board->getWidth();
+	cellHeight = boardPanel.h / this->board->getHeight();
 
-	this->boardPosition->x = 0;
-	this->boardPosition->y = 0;
+	//TODO: put the board in the right place!
 
 	SDL_RenderClear(mainRenderer);
 	renderStatusPanel();
@@ -208,7 +198,7 @@ void Controller::setState(controlState newState)
 {
     state = newState;
     if(state != exiting)
-        renderStatusPanel(statusPanel);
+        renderStatusPanel();
 }
 
 /*Preconditions: newSpeed is -1 or 1
@@ -254,16 +244,16 @@ void Controller::setSpeed(int newSpeed)
 
 void Controller::setPan(int x, int y)
 {
-	boardPosition->x -= (x - boardPanel->w / 2) * 10 / boardPanel->w * cellWidth / 40;
-	boardPosition->y -= (y - boardPanel->h / 2) * 10 / boardPanel->h * cellHeight / 40;
+	boardPosition.x -= (x - boardPanel.w / 2) * 10 / boardPanel.w * cellWidth / 40;
+	boardPosition.y -= (y - boardPanel.h / 2) * 10 / boardPanel.h * cellHeight / 40;
 	/*
-	if (x * 4 / boardPanel->w < (boardPanel->w / 2 / cellWidth))
+	if (x * 4 / boardPanel.w < (boardPanel.w / 2 / cellWidth))
 	{
-		boardPosition->x += cellWidth / 2;
+		boardPosition.x += cellWidth / 2;
 	}
 	else
 	{
-		boardPosition->x -= cellWidth / 2;
+		boardPosition.x -= cellWidth / 2;
 	}*/
 	checkRC();
 }
@@ -285,13 +275,13 @@ void Controller::setZoom(int amount)
 	for (int i = 0; i < amount; i++)
 	{
 		std::cout << currentCol << std::endl;
-		//std::cout << (boardPanel->w - cellWidth + 1) << " " << (currentCol * cellWidth + boardPosition->x + 1) + 1 << std::endl;
-		//std::cout << (boardPanel->w - cellWidth + 1) / (currentCol * cellWidth + boardPosition->x + 1) + 1 << std::endl;
-		//int freq = (boardPanel->w - cellWidth + 1) / (currentCol * cellWidth + boardPosition->x + 1) + 1;
-		//boardPosition->x -= currentCol + ((cellWidth % board->getWidth() / (currentCol+1) == 0) ? 1 : 0);
-		//boardPosition->y -= currentRow + ((cellWidth % board->getHeight() / (currentRow+1) == 0) ? 1 : 0);
-		boardPosition->x -= currentCol + (cellWidth % 2);
-		boardPosition->y -= currentRow + (cellWidth % 2);
+		//std::cout << (boardPanel.w - cellWidth + 1) << " " << (currentCol * cellWidth + boardPosition.x + 1) + 1 << std::endl;
+		//std::cout << (boardPanel.w - cellWidth + 1) / (currentCol * cellWidth + boardPosition.x + 1) + 1 << std::endl;
+		//int freq = (boardPanel.w - cellWidth + 1) / (currentCol * cellWidth + boardPosition.x + 1) + 1;
+		//boardPosition.x -= currentCol + ((cellWidth % board->getWidth() / (currentCol+1) == 0) ? 1 : 0);
+		//boardPosition.y -= currentRow + ((cellWidth % board->getHeight() / (currentRow+1) == 0) ? 1 : 0);
+		boardPosition.x -= currentCol + (cellWidth % 2);
+		boardPosition.y -= currentRow + (cellWidth % 2);
 		cellWidth++;
 		cellHeight++;
 	}
@@ -299,57 +289,57 @@ void Controller::setZoom(int amount)
 	{
 		cellWidth--;
 		cellHeight--;
-		boardPosition->x += currentCol + (cellWidth % 2);
-		boardPosition->y += currentRow + (cellHeight % 2);
+		boardPosition.x += currentCol + (cellWidth % 2);
+		boardPosition.y += currentRow + (cellHeight % 2);
 	}
 
-	if (board->getWidth() * cellWidth <= boardPanel->w)
+	if (board->getWidth() * cellWidth <= boardPanel.w)
 	{
-		boardPosition->x = (boardPanel->w - cellWidth * board->getWidth()) / 2;
+		boardPosition.x = (boardPanel.w - cellWidth * board->getWidth()) / 2;
 	}
 	else
 	{
-		if (boardPosition->x < 0)
+		if (boardPosition.x < 0)
 		{
-			if (board->getWidth() * cellWidth + boardPosition->x < boardPanel->x + boardPanel->w)
+			if (board->getWidth() * cellWidth + boardPosition.x < boardPanel.x + boardPanel.w)
 			{
-				boardPosition->x = boardPanel->x + boardPanel->w - cellWidth * board->getWidth();
+				boardPosition.x = boardPanel.x + boardPanel.w - cellWidth * board->getWidth();
 			}
 		}
-		else if (boardPosition->x > 0)
+		else if (boardPosition.x > 0)
 		{
-			if (boardPosition->x > boardPanel->x)
+			if (boardPosition.x > boardPanel.x)
 			{
-				boardPosition->x = boardPanel->x;
+				boardPosition.x = boardPanel.x;
 			}
 		}
 	}
-	if (board->getHeight() * cellHeight <= boardPanel->h)
+	if (board->getHeight() * cellHeight <= boardPanel.h)
 	{
-		boardPosition->y = (boardPanel->h - cellHeight * board->getHeight())/2;
+		boardPosition.y = (boardPanel.h - cellHeight * board->getHeight())/2;
 	}
 	else
 	{
-		if (boardPosition->y < 0)
+		if (boardPosition.y < 0)
 		{
-			if (board->getHeight() * cellHeight + boardPosition->y < boardPanel->y + boardPanel->h)
+			if (board->getHeight() * cellHeight + boardPosition.y < boardPanel.y + boardPanel.h)
 			{
-				boardPosition->y = boardPanel->y + boardPanel->h - cellHeight * board->getHeight();
+				boardPosition.y = boardPanel.y + boardPanel.h - cellHeight * board->getHeight();
 			}
 		}
-		else if (boardPosition->y > 0)
+		else if (boardPosition.y > 0)
 		{
-			if (boardPosition->y > boardPanel->y)
+			if (boardPosition.y > boardPanel.y)
 			{
-				boardPosition->y = boardPanel->y;
+				boardPosition.y = boardPanel.y;
 			}
 		}
 	}
 	checkRC();
 
 	/*
-	boardPosition->x -= (amount * (currentCol * cellWidth + boardPosition->x));
-	boardPosition->y -= (amount * (currentRow * cellHeight + boardPosition->y));
+	boardPosition.x -= (amount * (currentCol * cellWidth + boardPosition.x));
+	boardPosition.y -= (amount * (currentRow * cellHeight + boardPosition.y));
 
 	cellWidth += amount;
 	cellHeight += amount;
@@ -361,53 +351,12 @@ void Controller::setZoom(int amount)
 
 void Controller::resetZoom()
 {
-	cellWidth = boardPanel->w / this->board->getWidth();
-	cellHeight = boardPanel->h / this->board->getHeight();
+	cellWidth = boardPanel.w / this->board->getWidth();
+	cellHeight = boardPanel.h / this->board->getHeight();
 
-	this->boardPosition->x = 0;
-	this->boardPosition->y = 0;
+	this->boardPosition.x = 0;
+	this->boardPosition.y = 0;
 }
-/*Postconditions: Updates the status windows, based on the current values of
-                height, width, state, iterations, birth, death, and speed
-*/
-/*
-void Controller::updateStatusWin()
-{
-    WINDOW* statusWin = panel_window(statusPanel);
-    werase(statusWin);
-    box(statusWin, 0, 0);
-    if (state == editing)
-        mvwprintw(statusWin, 1, 1, "Board Size:\tStatus:");
-    else
-        mvwprintw(statusWin, 1, 1, "Board Size:\tStatus:\tIterations:\tBirths:\tDeaths:\tSpeed:\tBirth Rule:\tSurvival Rule:");
-    //pad the board size when it is small
-    mvwprintw(statusWin, 3, 1, "%-3d", board->getHeight());
-    wprintw(statusWin, " x ");
-    wprintw(statusWin, "%-3d", board->getWidth());
-    wprintw(statusWin, "\t");
-    wprintw(statusWin, getStateName().c_str());
-    wprintw(statusWin, "\t");
-    if (state != editing)
-    {
-        wprintw(statusWin, "%d", board->getIterations());
-        wprintw(statusWin, "\t\t");
-        wprintw(statusWin, "%d", board->getBirths());
-        wprintw(statusWin, "\t");
-        wprintw(statusWin, "%d", board->getDeaths());
-        wprintw(statusWin, "\t");
-
-        //speed variable is in iterations/second... make sure it is presented that
-        //way to the user (i.e. don't divide by 1000 or anything)
-        wprintw(statusWin, "%d", speed);
-
-        wprintw(statusWin, "\t");
-        wprintw(statusWin, "%-9s", board->getBirthRule().c_str());
-        wprintw(statusWin, "\t");
-        wprintw(statusWin, "%-9s", board->getSurvivalRule().c_str());
-    }
-    mvwprintw(statusWin, 2, STATUS_WIDTH-15, "K: Keybindings");
-    updateScreen();
-} */
 
 /*Preconditions: message is a string object
 Postconditions: Prompts the user with message, and gets string input from the user
@@ -432,8 +381,8 @@ void Controller::renderBoard(SDL_Rect * renderArea)
 	{
 		for (int column = 0; column < board->getWidth(); column++)
 		{
-			int y = renderArea->y + cellHeight * row + boardPosition->y;
-			int x = renderArea->x + cellWidth * column + boardPosition->x;
+			int y = renderArea->y + cellHeight * row + boardPosition.y;
+			int x = renderArea->x + cellWidth * column + boardPosition.x;
 			SDL_Rect cellRect = {x, y, cellWidth, cellHeight};
 
 			cellColor = &this->mainColor;
@@ -464,15 +413,15 @@ void Controller::renderBoard(SDL_Rect * renderArea)
 
 void Controller::renderBoard()
 {
-	renderBoard(boardPanel);
+	renderBoard(&boardPanel);
 }
 
 
 void Controller::updateRC(int x, int y)
 {
 	//TODO: obviously, make the cell height a data field... this will let you control zoom
-	this->currentCol = (x - boardPanel->x - boardPosition->x) / cellWidth;
-	this->currentRow = (y - boardPanel->y - boardPosition->y) / cellHeight;
+	this->currentCol = (x - boardPanel.x - boardPosition.x) / cellWidth;
+	this->currentRow = (y - boardPanel.y - boardPosition.y) / cellHeight;
 }
 
 void Controller::checkRC()
@@ -488,26 +437,27 @@ void Controller::checkRC()
 		currentCol = board->getWidth() - 1;
 
 	//adjusts camera if row or col is out of range
-	if (currentRow * cellHeight + boardPosition->y < boardPanel->y)
+	if (currentRow * cellHeight + boardPosition.y < boardPanel.y)
 	{
-		std::cout << "boardPosition before: " << boardPosition->y << std::endl;
-		boardPosition->y = (boardPanel->y - (currentRow * cellHeight));
-		std::cout << "boardPosition after: " << boardPosition->y << std::endl;
+		std::cout << "boardPosition before: " << boardPosition.y << std::endl;
+		boardPosition.y = (boardPanel.y - (currentRow * cellHeight));
+		std::cout << "boardPosition after: " << boardPosition.y << std::endl;
 	}
-	else if ((currentRow + 1) * cellHeight + boardPosition->y > (boardPanel->y + boardPanel->h))
+	else if ((currentRow + 1) * cellHeight + boardPosition.y > (boardPanel.y + boardPanel.h))
 	{
-		boardPosition->y = (boardPanel->y + boardPanel->h ) - (currentRow + 1) * cellHeight;
+		boardPosition.y = (boardPanel.y + boardPanel.h ) - (currentRow + 1) * cellHeight;
 	}
-	if (currentCol * cellWidth + boardPosition->x < boardPanel->x)
+	if (currentCol * cellWidth + boardPosition.x < boardPanel.x)
 	{
-		boardPosition->x = (boardPanel->x - (currentCol * cellWidth));
+		boardPosition.x = (boardPanel.x - (currentCol * cellWidth));
 	}
-	else if ((currentCol + 1) * cellWidth + boardPosition->x > (boardPanel->x + boardPanel->w))
+	else if ((currentCol + 1) * cellWidth + boardPosition.x > (boardPanel.x + boardPanel.w))
 	{
-		boardPosition->x = (boardPanel->x + boardPanel->w ) - (currentCol + 1) * cellWidth;
+		boardPosition.x = (boardPanel.x + boardPanel.w ) - (currentCol + 1) * cellWidth;
 	}
 }
 
+//TODO: rewrite this, make all the text static members, update only the number
 void Controller::renderStatusPanel(SDL_Rect * renderArea)
 {
 	//if we are in the menu, we can hide the status panel
@@ -553,7 +503,10 @@ void Controller::renderStatusPanel(SDL_Rect * renderArea)
 		//centering each surface onto a point in the 2x3 grid
 		SDL_Rect tempRect = {renderArea->x + xShift * col - surface->w/2, renderArea->y + yShift * row - surface->h/2, surface->w, surface->h};
 		//creating a texture from surface and rendering it onto tempRect
-		SDL_RenderCopy(mainRenderer, SDL_CreateTextureFromSurface(mainRenderer, surface), NULL, &tempRect);
+		SDL_Texture * texture = SDL_CreateTextureFromSurface(mainRenderer, surface);
+		SDL_RenderCopy(mainRenderer, texture, NULL, &tempRect);
+		SDL_DestroyTexture(texture);
+		SDL_FreeSurface(surface);
 	}
 	SDL_SetRenderDrawColor(mainRenderer, mainColor.r, mainColor.g, mainColor.b, 0xFF);
 	SDL_RenderDrawLine(mainRenderer, 0, renderArea->y, renderArea->w, renderArea->y);
@@ -562,7 +515,7 @@ void Controller::renderStatusPanel(SDL_Rect * renderArea)
 
 void Controller::renderStatusPanel()
 {
-	renderStatusPanel(statusPanel);
+	renderStatusPanel(&statusPanel);
 }
 
 void Controller::runIteration()
@@ -573,7 +526,7 @@ void Controller::runIteration()
 int Controller::getButtonInput(std::string dialog, std::vector<std::string> options)
 {
 	std::cerr << "get button input\n";
-	ButtonBox buttons(mainFont, mainColor, bgColor, dialog, options, boardPanel->w, boardPanel->h, true);
+	ButtonBox buttons(mainRenderer, mainFont, mainColor, bgColor, dialog, options, boardPanel.w, boardPanel.h, true);
 
 	std::cerr << "buttons created\n";
 	buttons.render(mainRenderer);
@@ -582,19 +535,19 @@ int Controller::getButtonInput(std::string dialog, std::vector<std::string> opti
 	std::cerr << "render presented\n";
 	while (!buttons.hasValidInput())
 	{
-		while (SDL_PollEvent(event) != 0)
+		while (SDL_PollEvent(&event) != 0)
 		{
-			if (event->type == SDL_QUIT)
+			if (event.type == SDL_QUIT)
 			{
 				exit(0); //see ya
 			}
-			else if (event->type == SDL_MOUSEBUTTONDOWN)
+			else if (event.type == SDL_MOUSEBUTTONDOWN)
 			{
 				int a, b;
 				SDL_GetMouseState(&a, &b);
 				buttons.updateInput(a, b);
 			}
-			else if (event->type == SDL_MOUSEMOTION)
+			else if (event.type == SDL_MOUSEMOTION)
 			{
 				int a, b;
 				SDL_GetMouseState(&a, &b);
@@ -789,11 +742,12 @@ void Controller::editMode()
 	updateRC(x, y);
     //loop until we are no longer paused or editing
 	bool doPan = false;
+	//bool placeCell;
     while(getState() == paused || getState() == editing)
     {
-		while (SDL_PollEvent(event) != 0)
+		while (SDL_PollEvent(&event) != 0)
 		{
-		    switch(this->event->type)
+		    switch(this->event.type)
 			{
 				case SDL_QUIT:
 				std::cout << "exiting...\n";
@@ -803,11 +757,11 @@ void Controller::editMode()
 
 				case SDL_MOUSEBUTTONUP:
 					std::cout << "button released\n";
-					if (event->button.button == SDL_BUTTON_LEFT)
+					if (event.button.button == SDL_BUTTON_LEFT)
 					{
 						std::cout << "left button released\n";
 					}
-					else if (event->button.button == SDL_BUTTON_RIGHT)
+					else if (event.button.button == SDL_BUTTON_RIGHT)
 					{
 						std::cout << "right button released\n";
 						doPan = false;
@@ -820,21 +774,21 @@ void Controller::editMode()
 				SDL_GetMouseState(&x, &y);
 				updateRC(x, y);
 				std::cout << "mouse button down\n";
-					if (event->button.button == SDL_BUTTON_LEFT)
+					if (event.button.button == SDL_BUTTON_LEFT)
 					{
 						std::cout << "left button down\n";
 						this->board->toggle(this->currentRow, this->currentCol);
 					}
-					else if (event->button.button == SDL_BUTTON_RIGHT)
+					else if (event.button.button == SDL_BUTTON_RIGHT)
 					{
 						std::cout << "right button down\n";
 						doPan = true;
 					}
 				break; //TODO: consider removing
 				case SDL_MOUSEWHEEL:
-					setZoom(event->wheel.y);
+					setZoom(event.wheel.y);
 				case SDL_KEYDOWN:
-				switch(this->event->key.keysym.sym)
+				switch(this->event.key.keysym.sym)
 				{
 					case SDLK_UP:
 					this->currentRow--;
@@ -882,7 +836,7 @@ void Controller::editMode()
 					break;
 					case SDLK_a:
 					std::cout << currentRow << " " << currentCol << std::endl;
-					std::cout << (currentRow * cellHeight + boardPosition->y) << std::endl;
+					std::cout << (currentRow * cellHeight + boardPosition.y) << std::endl;
 					addPattern(this->currentRow, this->currentCol);
 					break;
 					case SDLK_p:
@@ -899,8 +853,8 @@ void Controller::editMode()
 			setZoom(0);
 
 		SDL_RenderClear(mainRenderer);
-		renderBoard(this->boardPanel);
-		renderStatusPanel(this->statusPanel);
+		renderBoard(&boardPanel);
+		renderStatusPanel(&statusPanel);
 		SDL_RenderPresent(mainRenderer);
 		updateScreen();
 	}
@@ -922,16 +876,16 @@ void Controller::runningMode()
 		renderBoard();
 		renderStatusPanel();
 		updateScreen();
-		while (SDL_PollEvent(event) != 0)
+		while (SDL_PollEvent(&event) != 0)
 		{
-		    switch(this->event->type)
+		    switch(this->event.type)
 			{
 				case SDL_QUIT:
 				std::cout << "exiting...\n";
 				exit(-1); //TODO: exit more gracefully
 				break;
 				case SDL_KEYDOWN:
-				switch(this->event->key.keysym.sym)
+				switch(this->event.key.keysym.sym)
 				{
 					case SDLK_RIGHTBRACKET:
 					setSpeed(1);

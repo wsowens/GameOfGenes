@@ -151,6 +151,8 @@ int main(int argc, char** args)
 	{
 		std::cout << "initialization complete\n";
 	}
+
+
 	/*
 	SDL_Event * eve = new SDL_Event();
 
@@ -186,6 +188,13 @@ int main(int argc, char** args)
 	*/
 	Controller *controller = new Controller(gWindow);
 	std::cout << "controller constructed\n";
+	/*
+	int count = 0;
+	while (count++ < 1000000)
+	{
+		controller->getYesOrNo("Are tomatoes fruit?");
+	}
+	*/
 	controller->printPanelDimensions();
 	std::cout << "screen updated\n";
 	controller->printPanelDimensions();

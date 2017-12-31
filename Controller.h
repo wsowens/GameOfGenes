@@ -22,36 +22,38 @@ class Controller
     controlState state;
 
 	TTF_Font * mainFont;
+	SDL_Renderer * mainRenderer;
+
+
+
+
+	SDL_Event event;
+
+	SDL_Rect boardPanel;
+	SDL_Rect statusPanel;
 
 	SDL_Color mainColor;
 	SDL_Color bgColor;
 	SDL_Color accentColor;
 
-	SDL_Renderer * mainRenderer;
-	SDL_Event * event;
+	SDL_Point boardPosition;
 
-	SDL_Rect * boardPanel = new SDL_Rect;
-	SDL_Rect * statusPanel = new SDL_Rect;
-
-
-	int currentRow = -1;
-	int currentCol = -1;
+	int currentRow = 0;
+	int currentCol = 0;
 
 	int cellWidth = 2;
 	int cellHeight = 2;
 
-	int xStep = 1;
-	int yStep = 1;
-	SDL_Point * boardPosition = new SDL_Point;
-
 	void updateRC(int x, int y);
 	void checkRC();
-private:
-	void renderBoard(SDL_Rect * renderArea);
-	void renderStatusPanel(SDL_Rect * renderArea);
+
+	private:
+		void renderBoard(SDL_Rect * renderArea);
+		void renderStatusPanel(SDL_Rect * renderArea);
 
 	public:
         Controller(SDL_Window * window);
+		~Controller();
         void createNewBoard(bool wrapAround, int height, int width);
         void createNewBoard(bool wrapAround);
         void createNewBoard(std::string filename);
@@ -69,9 +71,9 @@ private:
         controlState getState();
         std::string getStateName();
 
-		void getConfirmationBox(std::string dialog);
 		int getButtonInput(std::string dialog, std::vector<std::string> options);
 		bool getYesOrNo(std::string dialog);
+		void getConfirmationBox(std::string dialog);
         std::string getStringInput(std::string message);
 		double getRatioInput(std::string message);
 		int getIntInput(std::string message);
