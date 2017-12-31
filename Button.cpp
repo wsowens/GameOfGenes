@@ -1,15 +1,21 @@
 #include "Button.h"
 
 //TODO: Rule of 3?
-Button::Button(SDL_Surface * surface, SDL_Surface * inverted,  int x, int y)
+#define SCREEN_WIDTH 800
+#define SCREEN_HEIGHT 600
+
+Button::Button(SDL_Renderer * renderer, SDL_Surface * surface, SDL_Surface * inverted,  int x, int y)
 {
-	this->surface = surface;
+	this->primary = SDL_CreateTextureFromSurface(renderer, surface);
 	//TODO: raise an exception if inverted does not match the dimensions of surface
-	this->inverted = inverted;
+	this->inverted = SDL_CreateTextureFromSurface(renderer, inverted);
 	this->x = x;
 	this->y = y;
+	this->width = surface->w;
+	this->height = surface->h;
 }
 
+//TODO: add copy constructors?
 Button::~Button()
 {
 	free();
@@ -17,8 +23,10 @@ Button::~Button()
 
 void Button::free()
 {
-	SDL_FreeSurface(surface);
-	SDL_FreeSurface(inverted);
+	//Button is not responsible for freeing surfaces! RAII
+	SDL_DestroyTexture(primary);
+	SDL_DestroyTexture(inverted);
+	printf("Button destroyed.\n");
 }
 
 void Button::toggle()
@@ -28,15 +36,14 @@ void Button::toggle()
 
 bool Button::contains(int otherX, int otherY)
 {
-	return (otherX >= x && otherX <= (x + surface->w) ) && (otherY >= y && otherY <= (y + surface->h) );
+	return (otherX >= x && otherX <= (x + width) ) && (otherY >= y && otherY <= (y + height) );
 }
 
 //remove if you can't find a good reason to be able to render in a different place
 void Button::render(SDL_Renderer * renderer, int a, int b)
 {
-	SDL_Surface * toRender = (isInverted) ? inverted : surface;
-	SDL_Texture * texture = SDL_CreateTextureFromSurface(renderer, toRender);
-	SDL_Rect renderQuad = { a, b, toRender->w, toRender->h };
+	SDL_Texture * texture = (isInverted) ? inverted : primary;
+	SDL_Rect renderQuad = { a, b, width, height};
 	SDL_RenderCopy(renderer, texture, NULL, &renderQuad);
 }
 
@@ -45,15 +52,14 @@ void Button::render(SDL_Renderer * renderer)
 	render(renderer, x, y);
 }
 
-
 int Button::getWidth()
 {
-	return surface->w;
+	return width;
 }
 
 int Button::getHeight()
 {
-	return surface->h;
+	return height;
 }
 
 bool Button::getIsInverted()
@@ -61,17 +67,12 @@ bool Button::getIsInverted()
 	return isInverted;
 }
 
-void Button::setPosition(SDL_Point * pos)
-{
-	this->x = pos->x;
-	this->y = pos->y;
-}
 /*
 =============================
 
 FOR TESTING PURPOSES
 
-============================
+=============================
 */
 
 
@@ -79,8 +80,6 @@ FOR TESTING PURPOSES
 
 
 /*
-
-
 SDL_Window * gWindow = NULL;
 SDL_Renderer * gRenderer = NULL;
 
@@ -160,7 +159,7 @@ int main(int argc, char** args)
 		printf("Error. Image failed to load.");
 		return 1;
 	}
-	Button * button = new Button(on, off, (SCREEN_WIDTH - on->w)/2, (SCREEN_HEIGHT - on->h)/2);
+	Button * button = new Button(gRenderer, on, off, (SCREEN_WIDTH - on->w)/2, (SCREEN_HEIGHT - on->h)/2);
 	SDL_Event * e = new SDL_Event();
 	bool quit = false;
 	while (!quit)
@@ -170,6 +169,7 @@ int main(int argc, char** args)
 			if (e->type == SDL_QUIT)
 			{
 				quit = true;
+				delete button;
 			}
 			else if (e->type == SDL_MOUSEBUTTONDOWN)
 			{
@@ -181,5 +181,12 @@ int main(int argc, char** args)
 		}
 		button->render(gRenderer);
 		SDL_RenderPresent(gRenderer);
+
+		if (button->getIsInverted())
+		{
+			delete button;
+			button = new Button(gRenderer, on, off, (SCREEN_WIDTH - on->w)/2, (SCREEN_HEIGHT - on->h)/2);
+		}
 	}
-}*/
+}
+*/

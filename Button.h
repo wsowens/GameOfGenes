@@ -6,7 +6,7 @@
 class Button
 {
 public:
-	Button(SDL_Surface * surface, SDL_Surface * inverted, int x, int y);
+	Button(SDL_Renderer * renderer, SDL_Surface * surface, SDL_Surface * inverted, int x, int y);
 	~Button();
 	void free();
 
@@ -19,14 +19,15 @@ public:
 	int getWidth();
 	int getHeight();
 	bool getIsInverted();
-	void setPosition(SDL_Point * pos);
 
 	//making public = a bad move?
 	int x;
 	int y;
 
 private:
-	SDL_Surface * surface;
-	SDL_Surface * inverted;
+	int width;
+	int height;
+	SDL_Texture * primary;
+	SDL_Texture * inverted;
 	bool isInverted = false;
 };
