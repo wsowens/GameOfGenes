@@ -1,15 +1,23 @@
 #include "ButtonBox.h"
 
-ButtonBox::ButtonBox(TTF_Font * font, SDL_Color textColor, SDL_Color bgColor, std::string display, std::vector<std::string> options, int i, int j, bool isCentered)
+ButtonBox::ButtonBox(SDL_Renderer * renderer, TTF_Font * font, SDL_Color textColor, SDL_Color bgColor, std::string display, std::vector<std::string> options, int i, int j, bool isCentered)
 {
-	this->font = font;
+
+
 	this->textColor = textColor;
 	this->bgColor = bgColor;
 	this->display = display;
-	this->displaySurface = TTF_RenderText_Shaded(font, display.c_str(), textColor, bgColor);
+
+	SDL_Surface * displaySurface = TTF_RenderText_Shaded(font, display.c_str(), textColor, bgColor);
+	this->displayTexture = SDL_CreateTextureFromSurface(renderer, displaySurface);
+	this->displayWidth = displaySurface->w;
+	this->displayHeight = displaySurface->h;
+	SDL_FreeSurface(displaySurface);
+
 
 	int maxButtonHeight = 0;
 	int totalButtonWidth = 0;
+
 	for (int i = 0; i < options.size(); i++)
 	{
 		SDL_Surface * buttonSurface = TTF_RenderText_Shaded(font, options[i].c_str(), textColor, bgColor);
@@ -17,14 +25,18 @@ ButtonBox::ButtonBox(TTF_Font * font, SDL_Color textColor, SDL_Color bgColor, st
 		maxButtonHeight = (buttonSurface->h > maxButtonHeight) ? buttonSurface->h : maxButtonHeight;
 		totalButtonWidth += buttonSurface->w;
 		SDL_Surface * buttonInvert = TTF_RenderText_Shaded(font, options[i].c_str(), bgColor, textColor);
-		Button * temp = new Button(buttonSurface, buttonInvert, 0, 0);
-		this->buttonList.push_back(temp);
+		buttonList.push_back(std::unique_ptr<Button>(new Button(renderer, buttonSurface, buttonInvert, 0, 0)));
+
+		SDL_FreeSurface(buttonSurface);
+		SDL_FreeSurface(buttonInvert);
+
+
 	}
 
 	//add a padding variable?
 	int padding = 20;
-	this->height = (displaySurface->h + maxButtonHeight) * 3 / 2 + padding * 2;
-	this->width = (totalButtonWidth > displaySurface->w) ? totalButtonWidth : displaySurface->w;
+	this->height = (displayHeight + maxButtonHeight) * 3 / 2 + padding * 2;
+	this->width = (totalButtonWidth > displayWidth) ? totalButtonWidth : displayWidth;
 	this->width += padding * 2;
 
 	if (!isCentered)
@@ -37,6 +49,7 @@ ButtonBox::ButtonBox(TTF_Font * font, SDL_Color textColor, SDL_Color bgColor, st
 		this->x = (i - width) / 2;
 		this->y = (j - height) / 2;
 	}
+
 	int buttonY = height - maxButtonHeight - padding + y;
 	int space = (width - totalButtonWidth) / (buttonList.size() + 1);
 	int buttonX = x + space;
@@ -47,22 +60,18 @@ ButtonBox::ButtonBox(TTF_Font * font, SDL_Color textColor, SDL_Color bgColor, st
 		buttonX += space + buttonList[i]->getWidth();
 		buttonList[i]->y = buttonY;
 	}
+
 }
 
 ButtonBox::~ButtonBox()
 {
 	free();
-	for (int i = 0; i < buttonList.size(); i++)
-	{
-		buttonList[i]->free();
-		buttonList[i] = NULL;
-	}
 }
 
 //should this be public? is this really needed?
 void ButtonBox::free()
 {
-	SDL_FreeSurface(displaySurface);
+	SDL_DestroyTexture(displayTexture);
 }
 
 void ButtonBox::updateInput(int otherX, int otherY)
@@ -108,10 +117,8 @@ void ButtonBox::render(SDL_Renderer * renderer)
 	SDL_SetRenderDrawColor(renderer, bgColor.r, bgColor.g, bgColor.b, bgColor.a);
 	SDL_RenderFillRect(renderer, &fillRect);
 
-	//should i just go ahead and make the texture instead of the surface in the constructor?
-	SDL_Texture * texture = SDL_CreateTextureFromSurface(renderer, displaySurface);
-	SDL_Rect renderQuad = { x + (width - displaySurface->w)/2, y+10, displaySurface->w, displaySurface->h };
-	SDL_RenderCopy(renderer, texture, NULL, &renderQuad);
+	SDL_Rect renderQuad = { x + (width - displayWidth)/2, y+10, displayWidth, displayHeight };
+	SDL_RenderCopy(renderer, displayTexture, NULL, &renderQuad);
 
 	SDL_SetRenderDrawColor(renderer, textColor.r, textColor.g, textColor.b, textColor.a);
 	for (int i = 0; i < buttonList.size(); i++)
@@ -149,6 +156,11 @@ int ButtonBox::getInput()
 
 //FOR TESTING ONLY
 /*
+#define SCREEN_WIDTH 800
+#define SCREEN_HEIGHT 600
+#include <cstdio>
+#include <iostream>
+
 SDL_Window * gWindow = NULL;
 SDL_Renderer * gRenderer = NULL;
 
@@ -232,15 +244,19 @@ int main(int argc, char** args)
 	options.push_back("Close Window");
 	options.push_back("This button does nothing.");
 
-	ButtonBox mainMenu(myFont, consoleGreen, black, "Welcome to the ButtonBox!", options, SCREEN_WIDTH, SCREEN_HEIGHT, true);
+	ButtonBox mainMenu(gRenderer, myFont, consoleGreen, black, "Welcome to the ButtonBox!", options, SCREEN_WIDTH, SCREEN_HEIGHT, true);
+
 	std::vector<std::string> coolOptions;
 	coolOptions.push_back("Ok, go back.");
-	ButtonBox cool(myFont, consoleGreen, black, "Cool!", coolOptions, 300, 300, false);
+
+	ButtonBox cool(gRenderer, myFont, consoleGreen, black, "Cool!", coolOptions, 300, 300, false);
+
 	ButtonBox * current = &mainMenu;
 
 	SDL_Event * e = new SDL_Event();
 
 	bool quit = false;
+	bool updateRender = true;
 	while (!quit)
 	{
 		while (SDL_PollEvent(e) != 0)
@@ -254,12 +270,14 @@ int main(int argc, char** args)
 				int a, b;
 				SDL_GetMouseState(&a, &b);
 				current->updateInput(a, b);
+				updateRender = true;
 			}
 			else if (e->type == SDL_MOUSEMOTION)
 			{
 				int a, b;
 				SDL_GetMouseState(&a, &b);
 				current->updateHover(a, b);
+				updateRender = true;
 			}
 		}
 		if (current->getInput() == 0)
@@ -279,13 +297,27 @@ int main(int argc, char** args)
 		{
 			quit = true;
 		}
-
-		SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
-		SDL_RenderClear(gRenderer);
-		current->render(gRenderer);
-		SDL_RenderPresent(gRenderer);
+		if (updateRender)
+		{
+			SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
+			SDL_RenderClear(gRenderer);
+			current->render(gRenderer);
+			SDL_RenderPresent(gRenderer);
+			updateRender = false;
+		}
 	}
-
+	delete e;
+	ButtonBox * buttons;
+	int count = 0;
+	while (count++ < 10000)
+	{
+		ButtonBox * buttons = new ButtonBox(gRenderer, myFont, consoleGreen, black, "Welcome to the ButtonBox!", options, SCREEN_WIDTH, SCREEN_HEIGHT, true);
+		SDL_RenderClear(gRenderer);
+		buttons->render(gRenderer);
+		SDL_RenderPresent(gRenderer);
+		delete buttons;
+	}
 	printf("%d\n", current->getInput());
 
-}*/
+}
+*/

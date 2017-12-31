@@ -1,8 +1,5 @@
 #include "Button.h"
-
 //TODO: Rule of 3?
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 600
 
 Button::Button(SDL_Renderer * renderer, SDL_Surface * surface, SDL_Surface * inverted,  int x, int y)
 {
@@ -26,7 +23,6 @@ void Button::free()
 	//Button is not responsible for freeing surfaces! RAII
 	SDL_DestroyTexture(primary);
 	SDL_DestroyTexture(inverted);
-	printf("Button destroyed.\n");
 }
 
 void Button::toggle()
