@@ -1,9 +1,11 @@
 #include "TextBox.h"
 
-TextBox::TextBox(SDL_Renderer * renderer, TTF_Font * font, SDL_Color textColor, SDL_Color bgColor, std::string display, int i, int j, bool isCentered)
+//TODO: add an enter button!
+TextBox::TextBox(SDL_Renderer * renderer, TTF_Font * font, SDL_Color textColor, SDL_Color bgColor, SDL_Color accentColor, std::string display, int i, int j, bool isCentered)
 {
 	this->textColor = textColor;
 	this->bgColor = bgColor;
+	this->accentColor = accentColor;
 	this->textFont = font;
 	SDL_Surface * displaySurface = TTF_RenderText_Shaded(textFont, display.c_str(), textColor, bgColor);
 	this->displayTexture = SDL_CreateTextureFromSurface(renderer, displaySurface);
@@ -23,14 +25,20 @@ TextBox::TextBox(SDL_Renderer * renderer, TTF_Font * font, SDL_Color textColor, 
 
 	if (isCentered)
 	{
-		this->x = (i - width) / 2;
-		this->y = (j - height) / 2;
+		this->x = i - width / 2;
+		this->y = j - height / 2;
 	}
 	else
 	{
 		this->x = i;
 		this->y = j;
 	}
+}
+
+TextBox::TextBox(SDL_Renderer * renderer, TTF_Font * font, SDL_Color textColor, SDL_Color bgColor, std::string display, int i, int j, bool isCentered)
+{
+	//you can provide no accent color, accent defaults to textColor
+	TextBox(renderer, font, textColor, bgColor, textColor, display, i, j, isCentered);
 }
 
 TextBox::~TextBox()
@@ -78,7 +86,7 @@ void TextBox::render(SDL_Renderer * renderer)
 
 	if (input.size() > 0)
 	{
-		SDL_Surface * inputSurface = TTF_RenderText_Shaded(textFont, input.c_str(), textColor, bgColor);
+		SDL_Surface * inputSurface = TTF_RenderText_Shaded(textFont, input.c_str(), accentColor, bgColor);
 		SDL_Texture * inputTexture = SDL_CreateTextureFromSurface(renderer, inputSurface);
 
 		SDL_Rect quad = {x+10, y+height-10-inputSurface->h, inputSurface->w, inputSurface->h};

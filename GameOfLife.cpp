@@ -21,9 +21,14 @@ void MainMenu(Controller *controller)
 		//Create a new board
 		case 0:
 		{
+			controller->clearScreen();
+			int height = controller->getIntInput("Enter height: ");
+			controller->clearScreen();
+			int width = controller->getIntInput("Enter width: ");
+			controller->clearScreen();
 			bool wrapAround = controller->getYesOrNo("Would you like to enable wrap around?");
-			controller->createNewBoard(wrapAround);
-			controller->setState(paused);
+			controller->createNewBoard(wrapAround, height, width);
+			controller->setState(PAUSED);
 			break;
 		}
 		//Load a saved board
@@ -51,33 +56,40 @@ void MainMenu(Controller *controller)
 			//If user entered nothing, cancel loading a saved board
 			if(filename == "")
 				break;
-			controller->setState(paused);
+			controller->setState(PAUSED);
 			std::cout << "Board loaded.\n";
 			break;
 		}
 		//Load a random board
 		case 2:
 		{
+			controller->clearScreen();
+			int height = controller->getIntInput("Enter height: ");
+			controller->clearScreen();
+			int width = controller->getIntInput("Enter width: ");
+			controller->clearScreen();
 			bool wrapAround = controller->getYesOrNo("Would you like to enable wrap around?");
-			controller->createNewBoard(wrapAround);
+			controller->createNewBoard(wrapAround, height, width);
 			double ratio = controller->getRatioInput("Enter a ratio");
 			//If the user entered nothing, cancel laoding a random board
 			if(ratio == -1)
 				break;
 			controller->randomizeBoard(ratio);
-			controller->setState(paused);
+			controller->setState(PAUSED);
 			break;
 		}
 		//Load the pattern editor
 		case 3:
 		{
+			controller->clearScreen();
 			int height = controller->getIntInput("Enter height: ");
+			controller->clearScreen();
 			int width = controller->getIntInput("Enter width: ");
 			//If the user entered nothing, cancel loading the pattern editor
 			if(height == 0 && width == 0)
 				break;
 			controller->createNewBoard(false, height, width);
-			controller->setState(editing);
+			controller->setState(EDITING);
 			controller->renderBoard();
 			break;
 			std::cout << "coming soon sorry\n";
@@ -86,7 +98,7 @@ void MainMenu(Controller *controller)
 		//Exit
 		case -1:
 		case 4:
-			controller->setState(exiting);
+			controller->setState(EXITING);
 			break;
 	}
 
@@ -188,11 +200,12 @@ int main(int argc, char** args)
 	*/
 	Controller *controller = new Controller(gWindow);
 	std::cout << "controller constructed\n";
+
 	/*
 	int count = 0;
 	while (count++ < 1000000)
 	{
-		controller->getYesOrNo("Are tomatoes fruit?");
+		std::cout << controller->getStringInput("Enter a word: ") << std::endl;
 	}
 	*/
 	controller->printPanelDimensions();
@@ -201,21 +214,21 @@ int main(int argc, char** args)
 	MainMenu(controller);
 	std::cout << "main menu completed\n";
 	//Main control loop
-	while (controller->getState() != exiting)
+	while (controller->getState() != EXITING)
 	{
 		switch (controller->getState())
 		{
-			case menu:
+			case MENU:
 				MainMenu(controller);
 				break;
-			case running:
+			case RUNNING:
 				controller->runningMode();
 				break;
-			case paused:
-			case editing:
+			case PAUSED:
+			case EDITING:
 				controller->editMode();
 				break;
-			case exiting:
+			case EXITING:
 				break;
 		}
 	}

@@ -41,8 +41,8 @@ ButtonBox::ButtonBox(SDL_Renderer * renderer, TTF_Font * font, SDL_Color textCol
 
 	if (isCentered)
 	{
-		this->x = (i - width) / 2;
-		this->y = (j - height) / 2;
+		this->x = i - width / 2;
+		this->y = j - height / 2;
 	}
 	else
 	{

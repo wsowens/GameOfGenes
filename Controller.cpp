@@ -1,6 +1,7 @@
 #include "Controller.h"
 #include <exception>
 #include <sstream>
+#include <stdexcept>
 
 Controller::Controller(SDL_Window * window)
 {
@@ -43,7 +44,7 @@ Controller::Controller(SDL_Window * window)
 	this->mainColor = {0, 0xFF, 0};
 	this->bgColor = {0, 0, 0};
 	this->accentColor = {0xFF, 0xFF, 0xFF};
-    state = menu;
+    state = MENU;
 
 	this->mainFont = TTF_OpenFont("./assets/consola.ttf", 16);
 }
@@ -56,7 +57,8 @@ Controller::~Controller()
 		delete board;
 		board = nullptr;
 	}
-	
+
+	SDL_DestroyRenderer(mainRenderer);
 }
 
 void Controller::printPanelDimensions()
@@ -71,6 +73,11 @@ void Controller::updateScreen()
 {
 	std::cerr << "updating screen\n";
 	SDL_RenderPresent(mainRenderer);
+}
+
+void Controller::clearScreen()
+{
+	SDL_RenderClear(mainRenderer);
 }
 
 /*Preconditions: wrapAround is true if the user wants to enable wrapAround
@@ -177,15 +184,15 @@ std::string Controller::getStateName()
 {
     switch(state)
     {
-        case running:
+        case RUNNING:
             return "Running";
-        case paused:
+        case PAUSED:
             return "Paused";
-        case editing:
+        case EDITING:
             return "Editing";
-        case menu:
+        case MENU:
             return "Menu";
-        case exiting:
+        case EXITING:
             return "Exiting";
     }
     return "MENU";
@@ -197,8 +204,9 @@ Postconditions: sets the controller state to newState
 void Controller::setState(controlState newState)
 {
     state = newState;
-    if(state != exiting)
-        renderStatusPanel();
+	//TODO: delete if this doesn't affect anything:
+    //if(state != EXITING)
+    //    renderStatusPanel();
 }
 
 /*Preconditions: newSpeed is -1 or 1
@@ -363,10 +371,52 @@ Postconditions: Prompts the user with message, and gets string input from the us
 */
 std::string Controller::getStringInput(std::string message)
 {
-	std::cout << message;
-	std::string userInput;
-	std::cin >> userInput;
-    return userInput;
+	TextBox inputBox(mainRenderer, mainFont, mainColor, bgColor, accentColor, message, boardPanel.w / 2, boardPanel.h / 2, true);
+
+	SDL_Event * e = new SDL_Event();
+	bool quit = false;
+	bool updateRender = true;
+
+	SDL_StartTextInput();
+	while (!quit)
+	{
+		while (SDL_PollEvent(e) != 0)
+		{
+			if (e->type == SDL_QUIT)
+			{
+				quit = true;
+				//TODO: exit more gracefully
+				exit(-1);
+			}
+			else if (e->type == SDL_KEYDOWN)
+			{
+				if (e->key.keysym.sym == SDLK_BACKSPACE)
+				{
+					inputBox.backspace();
+					updateRender = true;
+				}
+				updateRender = true;
+				if (e->key.keysym.sym == SDLK_RETURN)
+				{
+					quit = true;
+				}
+				//TODO: allow copy and paste
+			}
+			else if (e->type == SDL_TEXTINPUT)
+			{
+				//TODO: handle copy and paste
+				inputBox.append(e->text.text);
+			}
+		}
+		if (updateRender)
+		{
+			inputBox.render(mainRenderer);
+			SDL_RenderPresent(mainRenderer);
+			updateRender = false;
+		}
+	}
+	SDL_StopTextInput();
+	return inputBox.getInput();
 }
 
 
@@ -387,7 +437,7 @@ void Controller::renderBoard(SDL_Rect * renderArea)
 
 			cellColor = &this->mainColor;
 			//TODO: make this render a nice box around the cell instead of just changing the color
-			if (this->currentRow == row && this->currentCol == column && (getState() == editing || getState() == paused))
+			if (this->currentRow == row && this->currentCol == column && (getState() == EDITING || getState() == PAUSED))
 			{
 				SDL_SetRenderDrawColor(mainRenderer, accentColor.r, accentColor.g, accentColor.b, 0xFF);
 				SDL_RenderFillRect(mainRenderer, &cellRect);
@@ -461,7 +511,7 @@ void Controller::checkRC()
 void Controller::renderStatusPanel(SDL_Rect * renderArea)
 {
 	//if we are in the menu, we can hide the status panel
-	if (state == menu)
+	if (state == MENU)
 	{
 		return;
 	}
@@ -477,7 +527,7 @@ void Controller::renderStatusPanel(SDL_Rect * renderArea)
 	stringList.push_back(status.str());
 
 	//if we are not editing, we can also add these  details
-	if (state != editing)
+	if (state != EDITING)
 	{
 		std::ostringstream iterations, births, deaths, speed;
 		iterations << "Iterations: " << board->getIterations();
@@ -526,7 +576,7 @@ void Controller::runIteration()
 int Controller::getButtonInput(std::string dialog, std::vector<std::string> options)
 {
 	std::cerr << "get button input\n";
-	ButtonBox buttons(mainRenderer, mainFont, mainColor, bgColor, dialog, options, boardPanel.w, boardPanel.h, true);
+	ButtonBox buttons(mainRenderer, mainFont, mainColor, bgColor, dialog, options, boardPanel.w / 2, boardPanel.h / 2, true);
 
 	std::cerr << "buttons created\n";
 	buttons.render(mainRenderer);
@@ -718,18 +768,78 @@ void Controller::GetPatternDimensions(int &height, int &width)
 */
 double Controller::getRatioInput(std::string message)
 {
-	std::cout << message;
-	double ratio;
-	std::cin >> ratio;
-    return ratio;
+	double result = 0;
+	bool invalidInput = true;
+	while (invalidInput)
+	{
+		std::string input  = getStringInput(message);
+
+		if (input.size() == 0)
+		{
+			continue;
+		}
+
+		//TODO: possibly revise this
+		std::string::iterator iter = input.begin();
+		while (iter != input.end() && (std::isdigit(*iter) || *iter == '.' || *iter == '-') )
+			iter++;
+		if (iter != input.end())
+		{
+			continue;
+		}
+
+
+		invalidInput = false;
+		try
+		{
+			result = std::stod(input);
+		}
+		catch (const std::invalid_argument& ex)
+		{
+			invalidInput = true;
+			continue;
+		}
+	}
+
+    return result;
 }
 
 int Controller::getIntInput(std::string message)
 {
-	std::cout << message;
-	int value;
-	std::cin >> value;
-    return value;
+	int result = 0;
+	bool invalidInput = true;
+	while (invalidInput)
+	{
+		std::string input  = getStringInput(message);
+
+		if (input.size() == 0)
+		{
+			continue;
+		}
+
+		//TODO: possibly revise this
+		std::string::iterator iter = input.begin();
+		while (iter != input.end() && std::isdigit(*iter))
+			iter++;
+		if (iter != input.end())
+		{
+			continue;
+		}
+
+
+		invalidInput = false;
+		try
+		{
+			result = std::stoi(input);
+		}
+		catch (const std::invalid_argument& ex)
+		{
+			invalidInput = true;
+			continue;
+		}
+	}
+
+	return result;
 }
 
 /*A sub control loop, allows the user the manually toggle cells and add patterns
@@ -743,7 +853,7 @@ void Controller::editMode()
     //loop until we are no longer paused or editing
 	bool doPan = false;
 	//bool placeCell;
-    while(getState() == paused || getState() == editing)
+    while(getState() == PAUSED || getState() == EDITING)
     {
 		while (SDL_PollEvent(&event) != 0)
 		{
@@ -840,10 +950,10 @@ void Controller::editMode()
 					addPattern(this->currentRow, this->currentCol);
 					break;
 					case SDLK_p:
-					setState(running);
+					setState(RUNNING);
 					break;
 					case SDLK_ESCAPE:
-					setState(menu);
+					setState(MENU);
 				}
 	        }
 		}
@@ -863,7 +973,7 @@ void Controller::editMode()
 void Controller::runningMode()
 {
 
-	while(getState() == running)
+	while(getState() == RUNNING)
     {
 		//TODO: use timing to make this better
 		SDL_RenderClear(mainRenderer);
@@ -897,10 +1007,10 @@ void Controller::runningMode()
 					keybindingsBox();
 					break;
 					case SDLK_p:
-					setState(paused);
+					setState(PAUSED);
 					break;
 					case SDLK_ESCAPE:
-					setState(menu);
+					setState(MENU);
 				}
 	        }
 		}

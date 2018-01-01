@@ -7,7 +7,8 @@ class TextBox
 {
 public:
     TextBox(SDL_Renderer * renderer, TTF_Font * font, SDL_Color textColor, SDL_Color bgColor, std::string display, int i, int j, bool isCentered);
-    ~TextBox();
+	TextBox(SDL_Renderer * renderer, TTF_Font * font, SDL_Color textColor, SDL_Color bgColor, SDL_Color accentColor, std::string display, int i, int j, bool isCentered);
+	~TextBox();
 	void free();
 	//TODO: include a character limit?
 
@@ -31,6 +32,7 @@ private:
 
 	SDL_Color textColor;
 	SDL_Color bgColor;
+	SDL_Color accentColor;
 
     int width;
     int height;

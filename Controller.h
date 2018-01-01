@@ -3,12 +3,34 @@
 #include <vector>
 #include <string>
 #include "ButtonBox.h"
+#include "TextBox.h"
 #include "Board.h"
 #include "Formats.h"
 #include "Pattern.h"
 #include "Util.h"
 
-enum controlState {menu, running, paused, editing, exiting};
+enum controlState {MENU, RUNNING, PAUSED, EDITING, EXITING};
+
+//TODO: IMPLEMENT
+/*
+enum statusWords {SIZE, STATUS, ITERATIONS, BIRTHS, DEATHS, SPEED, STATUS_TOTAL};
+
+class WordTexture
+{
+	WordTexture(SDL_Renderer * renderer, std::string);
+	~WordTexture();
+	void render(SDL_Renderer * renderer, int x, int y);
+	int getWidth();
+	int getHeight();
+
+	void free();
+
+private:
+	int width;
+	int height;
+	SDL_Texture * texture;
+}
+*/
 
 class Controller
 {
@@ -23,7 +45,7 @@ class Controller
 
 	TTF_Font * mainFont;
 	SDL_Renderer * mainRenderer;
-
+	SDL_Texture** statusPanelTextures;
 
 
 
@@ -86,6 +108,7 @@ class Controller
 		void resetZoom();
 
 		void updateScreen();
+		void clearScreen();
 		void renderBoard();
 		void renderStatusPanel();
 
