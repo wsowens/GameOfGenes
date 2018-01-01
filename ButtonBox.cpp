@@ -39,15 +39,15 @@ ButtonBox::ButtonBox(SDL_Renderer * renderer, TTF_Font * font, SDL_Color textCol
 	this->width = (totalButtonWidth > displayWidth) ? totalButtonWidth : displayWidth;
 	this->width += padding * 2;
 
-	if (!isCentered)
-	{
-		this->x = i;
-		this->y = j;
-	}
-	else
+	if (isCentered)
 	{
 		this->x = (i - width) / 2;
 		this->y = (j - height) / 2;
+	}
+	else
+	{
+		this->x = i;
+		this->y = j;
 	}
 
 	int buttonY = height - maxButtonHeight - padding + y;
@@ -117,7 +117,8 @@ void ButtonBox::render(SDL_Renderer * renderer)
 	SDL_SetRenderDrawColor(renderer, bgColor.r, bgColor.g, bgColor.b, bgColor.a);
 	SDL_RenderFillRect(renderer, &fillRect);
 
-	SDL_Rect renderQuad = { x + (width - displayWidth)/2, y+10, displayWidth, displayHeight };
+	//note that the + 10 is for the padding TODO: fix this
+	SDL_Rect renderQuad = { x + (width - displayWidth)/2, y+10, displayWidth, displayHeight};
 	SDL_RenderCopy(renderer, displayTexture, NULL, &renderQuad);
 
 	SDL_SetRenderDrawColor(renderer, textColor.r, textColor.g, textColor.b, textColor.a);
