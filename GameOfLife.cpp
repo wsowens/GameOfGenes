@@ -22,9 +22,9 @@ void MainMenu(Controller *controller)
 		case 0:
 		{
 			controller->clearScreen();
-			int height = controller->getIntInput("Enter height: ");
+			int height = controller->getIntInput("Enter board height: ");
 			controller->clearScreen();
-			int width = controller->getIntInput("Enter width: ");
+			int width = controller->getIntInput("Enter board width: ");
 			controller->clearScreen();
 			bool wrapAround = controller->getYesOrNo("Would you like to enable wrap around?");
 			controller->createNewBoard(wrapAround, height, width);
@@ -39,7 +39,7 @@ void MainMenu(Controller *controller)
 			//Loop until we get a valid filename
 			while(!isFileValid)
 			{
-				filename = controller->getStringInput("Enter a filename:");
+				filename = controller->getStringInput("Enter board filename:");
 				if(filename == "")
 					break;
 				try
@@ -69,8 +69,9 @@ void MainMenu(Controller *controller)
 			int width = controller->getIntInput("Enter width: ");
 			controller->clearScreen();
 			bool wrapAround = controller->getYesOrNo("Would you like to enable wrap around?");
+			controller->clearScreen();
+			double ratio = controller->getRatioInput("Enter the proportion of cells to randomly turn on:");
 			controller->createNewBoard(wrapAround, height, width);
-			double ratio = controller->getRatioInput("Enter a ratio");
 			controller->randomizeBoard(ratio);
 			controller->setState(PAUSED);
 			break;
@@ -79,9 +80,9 @@ void MainMenu(Controller *controller)
 		case 3:
 		{
 			controller->clearScreen();
-			int height = controller->getIntInput("Enter height: ");
+			int height = controller->getIntInput("Enter editor height: ");
 			controller->clearScreen();
-			int width = controller->getIntInput("Enter width: ");
+			int width = controller->getIntInput("Enter editor width: ");
 			//If the user entered nothing, cancel loading the pattern editor
 			if(height == 0 && width == 0)
 				break;
@@ -202,9 +203,7 @@ int main(int argc, char** args)
 		std::cout << controller->getStringInput("Enter a word: ") << std::endl;
 	}
 	*/
-	controller->printPanelDimensions();
 	std::cout << "screen updated\n";
-	controller->printPanelDimensions();
 	MainMenu(controller);
 	std::cout << "main menu completed\n";
 	//Main control loop
@@ -219,14 +218,16 @@ int main(int argc, char** args)
 				controller->runningMode();
 				break;
 			case PAUSED:
+				controller->pausedMode();
+				break;
 			case EDITING:
-				controller->editMode();
+				controller->editorMode();
 				break;
 			case EXITING:
 				break;
 		}
 	}
-
+	delete controller;
 	//TODO: clean up SDL
     return 0;
 }

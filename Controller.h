@@ -47,8 +47,6 @@ class Controller
 	SDL_Renderer * mainRenderer;
 	SDL_Texture** statusPanelTextures;
 
-
-
 	SDL_Event event;
 
 	SDL_Rect boardPanel;
@@ -66,58 +64,65 @@ class Controller
 	int cellWidth = 2;
 	int cellHeight = 2;
 
-	void updateRC(int x, int y);
-	void checkRC();
+
 
 	private:
+		void updateRC(int x, int y);
+		void checkRC();
 		void renderBoard(SDL_Rect * renderArea);
 		void renderStatusPanel(SDL_Rect * renderArea);
+        void renderPattern(std::vector<std::vector<bool>>& matrix, SDL_Rect * renderArea);
 
 	public:
-        Controller(SDL_Window * window);
+		//constructors and destructors
+		Controller(SDL_Window * window);
 		~Controller();
+
+		//create a new board for this->board
         void createNewBoard(bool wrapAround, int height, int width);
         void createNewBoard(bool wrapAround);
         void createNewBoard(std::string filename);
 
-
-        void editMode();
-		void runningMode();
-		void placeMode(Pattern pattern);
-		void patternMode();
-
+		//board manipulation methods
         void randomizeBoard(double ratio);
+		void runIteration();
 
-        void keybindingsBox();
-
-
+		//ACCESSOR METHODS
         int getSpeed();
         controlState getState();
         std::string getStateName();
 
+		//USER INTERFACE METHODS
+		//present users with buttons
 		int getButtonInput(std::string dialog, std::vector<std::string> options);
 		bool getYesOrNo(std::string dialog);
 		void getConfirmationBox(std::string dialog);
+		void getKeybindingsBox();
+		//get users to input text
         std::string getStringInput(std::string message);
 		double getRatioInput(std::string message);
 		int getIntInput(std::string message);
+		void saveCurrent();
 
-        void saveCurrent();
+		//MUTATOR METHODS
+		//control the state / speed of the controller
         void setState(controlState newState);
         void setSpeed(int newSpeed);
+		//control the "camera"
 		void setPan(int x, int y);
 		void setZoom(int amount);
 		void resetZoom();
 
+		//RENDERING METHODS
 		void updateScreen();
 		void clearScreen();
 		void renderBoard();
 		void renderStatusPanel();
 
-        void renderPattern(std::vector<std::vector<bool>>& matrix, SDL_Rect * renderArea);
-		void addPattern(int startR, int startC);
+		//CONTROL LOOP METHODS
+		void pausedMode();
+		void runningMode();
+		void placeMode(Pattern pattern);
+		void editorMode();
 
-		void runIteration();
-
-		void printPanelDimensions();
 };
