@@ -9,7 +9,7 @@
 #include "Pattern.h"
 #include "Util.h"
 
-enum controlState {MENU, RUNNING, PAUSED, EDITING, EXITING};
+enum controlState {MENU, RUNNING, PAUSED, PLACE, EDITING, EXITING};
 
 //TODO: IMPLEMENT
 /*
@@ -83,6 +83,8 @@ class Controller
 
         void editMode();
 		void runningMode();
+		void placeMode(Pattern pattern);
+		void patternMode();
 
         void randomizeBoard(double ratio);
 
@@ -112,7 +114,7 @@ class Controller
 		void renderBoard();
 		void renderStatusPanel();
 
-        void renderPattern(std::vector<std::vector<bool>>, int x, int y);
+        void renderPattern(std::vector<std::vector<bool>>& matrix, SDL_Rect * renderArea);
 		void addPattern(int startR, int startC);
 
 		void runIteration();

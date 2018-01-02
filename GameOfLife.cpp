@@ -71,9 +71,6 @@ void MainMenu(Controller *controller)
 			bool wrapAround = controller->getYesOrNo("Would you like to enable wrap around?");
 			controller->createNewBoard(wrapAround, height, width);
 			double ratio = controller->getRatioInput("Enter a ratio");
-			//If the user entered nothing, cancel laoding a random board
-			if(ratio == -1)
-				break;
 			controller->randomizeBoard(ratio);
 			controller->setState(PAUSED);
 			break;
@@ -90,9 +87,6 @@ void MainMenu(Controller *controller)
 				break;
 			controller->createNewBoard(false, height, width);
 			controller->setState(EDITING);
-			controller->renderBoard();
-			break;
-			std::cout << "coming soon sorry\n";
 			break;
 		}
 		//Exit

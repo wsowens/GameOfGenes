@@ -101,6 +101,7 @@ BoardData loadRLE(string filename)
 
 	if (!in.is_open())
 		throw "Error Opening File";
+
 	string line;
 	int width = 0, height = 0;
 
