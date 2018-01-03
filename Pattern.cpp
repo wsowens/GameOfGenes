@@ -7,7 +7,7 @@ Pattern::Pattern(std::string filename):Board(filename)
 }
 
 //Rotates a pattern by 90 degrees counter clockwise, can be used to rotate a pattern more than once or in opposite direction with modification.
-void Pattern::Rotate()
+void Pattern::rotate()
 {
 	//copies original pattern before making changes to location of new rotated pattern board
 	vector<vector<bool>> patternCopy(matrix[0].size(), vector<bool> (matrix.size(), 0));

@@ -1183,19 +1183,18 @@ void Controller::placeMode(Pattern pattern)
 
 						case SDLK_KP_ENTER:
 						case SDLK_RETURN:
-							board->runIteration();
-							break;
-
 						case SDLK_SPACE:
 							board->addPattern(pattern.getMatrix(), currentRow, currentCol);
 							break;
 
 						case SDLK_RIGHTBRACKET:
-							setSpeed(1);
+							pattern.rotate();
+							pattern.rotate();
+							pattern.rotate();
 							break;
 
 						case SDLK_LEFTBRACKET:
-							setSpeed(-1);
+							pattern.rotate();
 							break;
 
 						case SDLK_KP_PLUS:

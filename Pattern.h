@@ -12,7 +12,7 @@ class Pattern: public Board {
 public:
 
 	Pattern(std::string filename);  //Pattern constructor
-	void Rotate();				//Rotates pattern when initalizing it on the board
+	void rotate();				//Rotates pattern when initalizing it on the board
 
 };
 
