@@ -4,6 +4,7 @@
 #include <string>
 #include "ButtonBox.h"
 #include "TextBox.h"
+#include "GridBox.h"
 #include "Board.h"
 #include "Formats.h"
 #include "Pattern.h"
@@ -64,7 +65,12 @@ class Controller
 	int cellWidth = 2;
 	int cellHeight = 2;
 
-
+	GridBox * generalControls = nullptr;
+	GridBox * pressAnyKey = nullptr;
+	GridBox * pausedControls = nullptr;
+	GridBox * runningControls = nullptr;
+	GridBox * placeControls = nullptr;
+	GridBox * editControls = nullptr;
 
 	private:
 		void updateRC(int x, int y);

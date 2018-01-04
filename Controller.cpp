@@ -8,6 +8,16 @@ bool endsWith(std::string& str, std::string& suffix)
 	return str.size() >= suffix.size() && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
 }
 
+template <typename TYPE>
+std::vector<TYPE> arrayToVector(TYPE x[], int size)
+{
+	std::vector<TYPE> vect;
+	for (int i = 0; i < size; i++)
+	{
+		vect.push_back(x[i]);
+	}
+	return vect;
+}
 
 Controller::Controller(SDL_Window * window)
 {
@@ -52,6 +62,7 @@ Controller::Controller(SDL_Window * window)
 	this->accentColor = {0xFF, 0xFF, 0xFF};
     state = MENU;
 
+	//TODO: move this into the controller
 	this->mainFont = TTF_OpenFont("./assets/consola.ttf", 16);
 }
 
@@ -63,7 +74,6 @@ Controller::~Controller()
 		delete board;
 		board = nullptr;
 	}
-
 	SDL_DestroyRenderer(mainRenderer);
 }
 
@@ -215,33 +225,111 @@ void Controller::getConfirmationBox(std::string dialog)
 	getButtonInput(dialog, options);
 }
 
-//TODO: add a help box again
+//To any friends, family, or future employers, I apologize for this pure spaghetti
 void Controller::getKeybindingsBox()
 {
+
+	if (generalControls == nullptr)
+	{
+		std::string generalText =
+			"GENERAL CONTROLS"
+			"\n+, =\tZoom in"
+			"\n-\tZoom out"
+			"\nArrow Keys\tMove Cursor / Pan Camera"
+			"\nScrollwheel \tZoom in / Out"
+			"\nRight-Click\tPan Camera"
+			"\nR\tReset Zoom"
+			"\nH\tShow Help Menu";
+		generalControls = new GridBox(mainRenderer, mainFont, generalText, mainColor, bgColor);
+	}
+	if (pressAnyKey == nullptr)
+	{
+		std::string pressAnyText = "Press any key to continue.";
+		pressAnyKey = new GridBox(mainRenderer, mainFont, pressAnyText, mainColor, bgColor);
+	}
+	switch (state)
+	{
+		case PAUSED:
+			if (pausedControls == nullptr)
+			{
+				std::string pausedText =
+					"PAUSED MODE"
+					"\nSpacebar\tToggle Cell"
+					"\nLeft-Click\tToggle Cell"
+					"\nEnter/Return\tPerform One Iteration"
+					"\n] (Right Bracket)\tIncrease Speed"
+					"\n[ (Left Bracket)\tDecrease Speed"
+					"\nLeft-Click\tToggle Cell"
+					"\nP\tPlay (enter running mode)"
+					"\nA\tPlace pattern"
+					"\nESC\tMain Menu";
+				pausedControls = new GridBox(mainRenderer, mainFont, pausedText, mainColor, bgColor);
+			}
+			pausedControls->render(mainRenderer, 0, 0, false, LEFT);
+			break;
+		case RUNNING:
+			if (runningControls == nullptr)
+			{
+				std::string runningText =
+					"RUNNING MODE"
+					"\n] (Right Bracket)\tIncrease Speed"
+					"\n[ (Left Bracket)\tDecrease Speed"
+					"\nP\tPause (enter paused mode)"
+					"\nESC\tExit to Menu";
+				runningControls = new GridBox(mainRenderer, mainFont, runningText, mainColor, bgColor);
+			}
+			runningControls->render(mainRenderer, 0, 0, false, LEFT);
+			break;
+		case PLACE:
+			if (placeControls == nullptr)
+			{
+				std::string placeText =
+					"PLACE MODE"
+					"\nSpacebar\tPlace Pattern"
+					"\nLeft-Click\tPlace Pattern"
+					"\nEnter/Return\tPlace Pattern"
+					"\n] (Right Bracket)\tRotate Right"
+					"\n[ (Left Bracket)\tRotate Left"
+					"\nA, ESC\tExit Place Mode";
+				placeControls = new GridBox(mainRenderer, mainFont, placeText, mainColor, bgColor);
+			}
+			placeControls->render(mainRenderer, 0, 0, false, LEFT);
+			break;
+		case EDITING:
+			if (editControls == nullptr)
+			{
+				std::string editText =
+					"EDIT MODE"
+					"\nSpacebar\tToggle Cell"
+					"\nLeft-Click\tToggle Cell"
+					"\nA\tPlace pattern"
+					"\nESC\tMain Menu";
+				editControls = new GridBox(mainRenderer, mainFont, editText, mainColor, bgColor);
+			}
+			editControls->render(mainRenderer, 0, 0, false, LEFT);
+			break;
+	}
+
+
+	std::cerr << "Dimensions: " << generalControls->getWidth() << " , " << generalControls->getHeight() << std::endl;
+	generalControls->render(mainRenderer, boardPanel.w - generalControls->getWidth() , 0, false, LEFT);
+	pressAnyKey->render(mainRenderer, boardPanel.w - generalControls->getWidth() / 2 - pressAnyKey->getWidth() / 2 , generalControls->getHeight(), false, CENTER);
+	//TODO: possibly make a confirmation box?
+	SDL_RenderPresent(mainRenderer);
+	bool quit = false;
+	while (!quit)
+	{
+		while (SDL_PollEvent(&event) != 0)
+		{
+			if (event.type == SDL_QUIT)
+			{
+				exit(0); //TODO: exit more gracefully
+			}
+			else if (event.type == SDL_KEYDOWN)
+				quit = true;
+		}
+	}
 	std::cerr << "Help box coming soon." << std::endl;
-	//create the window and print the keybindings
-    /*WINDOW *dialogWin = newwin(15, 38, termRow / 2 - 7, termCol / 2 - 19);
-    keypad(dialogWin, TRUE);
-    PANEL *dialogPanel = new_panel(dialogWin);
-    box(dialogWin, 0, 0);
-    mvwprintw(dialogWin, 1, 1, "p : pause/resume");
-    mvwprintw(dialogWin, 2, 1, "[ : decrease speed");
-    mvwprintw(dialogWin, 3, 1, "] : increase speed");
-    mvwprintw(dialogWin, 4, 1, "Arrow Keys : move cursor");
-    mvwprintw(dialogWin, 5, 1, "a : add pattern");
-    mvwprintw(dialogWin, 6, 1, "; : rotate pattern counterclockwise");
-    mvwprintw(dialogWin, 7, 1, "' : rotate pattern clockwise");
-    mvwprintw(dialogWin, 8, 1, "r : edit rules");
-    show_panel(dialogPanel);
-    updateScreen();
-    //wait for a keypress
-    wgetch(dialogWin);
-    //delete the window
-    curs_set(FALSE);
-    hide_panel(dialogPanel);
-    delwin(dialogWin);
-    del_panel(dialogPanel);
-    updateScreen();*/
 }
 
 std::string Controller::getStringInput(std::string message)
@@ -471,6 +559,7 @@ void Controller::setZoom(int amount)
 {
 	//put it all in a for loop
 	//check that the cellWidth > 0
+	//TODO: check cell height as well?
 	if (cellWidth + amount <= 2)
 	{
 		return;
@@ -561,7 +650,11 @@ void Controller::resetZoom()
 {
 	cellWidth = boardPanel.w / this->board->getWidth();
 	cellHeight = boardPanel.h / this->board->getHeight();
-
+	if (cellHeight < 3)
+		cellHeight = 3;
+	if (celLWidth < 3)
+		cellWidth = 3;
+	
 	if (cellWidth > cellHeight)
 	{
 		cellWidth = cellHeight;
@@ -616,7 +709,6 @@ void Controller::checkRC()
 
 void Controller::updateScreen()
 {
-	std::cerr << "updating screen\n";
 	SDL_RenderPresent(mainRenderer);
 }
 

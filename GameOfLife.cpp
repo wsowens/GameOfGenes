@@ -1,7 +1,6 @@
 #include "Controller.h"
 #include <ctime>
 #include <exception>
-
 #define SCREEN_HEIGHT 600
 #define SCREEN_WIDTH 800
 
@@ -159,8 +158,43 @@ int main(int argc, char** args)
 		std::cout << "initialization complete\n";
 	}
 
-
 	/*
+	SDL_Renderer * mainRenderer = SDL_CreateRenderer(gWindow, -1, SDL_RENDERER_ACCELERATED);
+
+	if( mainRenderer == NULL )
+	{
+		std::cerr << "Renderer could not be created! SDL Error: " << SDL_GetError() << std::endl;
+		throw "Renderer failed to create.";
+	}
+	SDL_SetRenderDrawColor(mainRenderer, 0, 0, 0, 0);
+	SDL_RenderClear(mainRenderer);
+	TTF_Font* myFont = TTF_OpenFont("./assets/consola.ttf", 18);
+	SDL_Color mainColor = {0, 0xFF, 0};
+	SDL_Color bgColor = {0, 0, 0};
+	std::string color[] = {"Red", "Sea Green", "Blue"};
+	std::string flavors[] = {"Hot", "Sweet", "Sour", "Superduperhot"};
+	std::string ethnic[] = {"Irish", "USA", "Japan"};
+	std::vector<std::string> colors(color, color + sizeof(color) / sizeof(std::string));
+	std::vector<std::string> flavor(flavors, flavors + sizeof(flavors) / sizeof(std::string));
+	std::vector<std::string> ethnics(ethnic, ethnic + sizeof(ethnic) / sizeof(std::string));
+	std::vector<std::vector<std::string>> strings;
+	strings.push_back(colors);
+	strings.push_back(flavor);
+	strings.push_back(ethnics);
+	std::cerr << "about to make box\n";
+
+	std::string text =
+		"GENERAL CONTROLS"
+		"\n+, =\tZoom in"
+		"\n-\tZoom out"
+		"\nArrow Keys\tMove Cursor / Pan Camera"
+		"\nScrollwheel \tZoom in / Out"
+		"\nRight-Click\tPan Camera"
+		"\nR\tReset Zoom"
+		"\nH\tShow Help Menu";
+
+	//GridBox * myBox;
+	GridBox * myBox;
 	SDL_Event * eve = new SDL_Event();
 
 	bool doExit = false;
@@ -169,22 +203,18 @@ int main(int argc, char** args)
 	{
 		while(SDL_PollEvent(eve) != 0)
 		{
-			if (eve->type == SDL_MOUSEWHEEL)
+			if (eve->type == SDL_QUIT)
 			{
-				std::cout << "Event Wheel X: " << eve->wheel.x << std::endl;
-				std::cout << "Event Wheel Y: " << eve->wheel.y << std::endl;
-				std::cout << "Event Wheel Direction: " << eve->wheel.direction << std::endl;
-			}
-			else if (eve->type == SDL_MOUSEBUTTONDOWN)
-			{
-				std::cout << "mouse button down\n";
-				if (eve->button.button == SDL_BUTTON_MIDDLE)
-				{
-					std::cout << eve->button.x << std::endl;
-					std::cout << eve->button.y << std::endl;
-				}
+				doExit = true;
 			}
 		}
+		myBox = new GridBox(mainRenderer, myFont, text, mainColor, bgColor);
+		std::cerr << "Dimensions: " << myBox->getWidth() << " , " << myBox->getHeight() << std::endl;
+		myBox->render(mainRenderer, SCREEN_WIDTH/2, SCREEN_HEIGHT/2, true, LEFT);
+		//myBox->render(mainRenderer, 0, myBox->getHeight(), true, CENTER);
+		//myBox->render(mainRenderer, 0, myBox->getHeight() * 2, false, RIGHT);
+		SDL_RenderPresent(mainRenderer);
+		delete myBox;
 	}
 
 	if (doExit)

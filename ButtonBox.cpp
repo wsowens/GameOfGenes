@@ -2,8 +2,6 @@
 
 ButtonBox::ButtonBox(SDL_Renderer * renderer, TTF_Font * font, SDL_Color textColor, SDL_Color bgColor, std::string display, std::vector<std::string> options, int i, int j, bool isCentered)
 {
-
-
 	this->textColor = textColor;
 	this->bgColor = bgColor;
 	this->display = display;
