@@ -652,9 +652,9 @@ void Controller::resetZoom()
 	cellHeight = boardPanel.h / this->board->getHeight();
 	if (cellHeight < 3)
 		cellHeight = 3;
-	if (celLWidth < 3)
+	if (cellWidth < 3)
 		cellWidth = 3;
-	
+
 	if (cellWidth > cellHeight)
 	{
 		cellWidth = cellHeight;
@@ -717,6 +717,12 @@ void Controller::clearScreen()
 	SDL_RenderClear(mainRenderer);
 }
 
+
+//TODO OPTIMIZE THIS FUNCTION FOR LARGER BOARDS
+/*
+	render only the on screen parts
+	seperate the rendering of the cursor and the rendering of the cells
+*/
 void Controller::renderBoard(SDL_Rect * renderArea)
 {
 	std::cerr << "render board called\n";
