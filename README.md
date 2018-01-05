@@ -61,16 +61,16 @@ There are a number of different cells, each with the same properties.
 Each cell has a set of genes. Any cell born as a neighbor of the of a given cell may inherit some of that cell's genes. 
 
 ## Controls
-###GENERAL CONTROLS
+### GENERAL
 * +, =				Zoom in
-* -					Zoom out
+* —					Zoom out
 * Arrow Keys			Move Cursor / Pan Camera
 * Scrollwheel 		Zoom in / Out
 * Right-Click			Pan Camera
 * R					Reset Zoom
 * H					Show Help Menu
  
-###PAUSED MODE
+### PAUSED MODE
 * Spacebar			Toggle Cell
 * Left-Click			Toggle Cell
 * Enter/Return		Perform One Iteration
@@ -81,13 +81,13 @@ Each cell has a set of genes. Any cell born as a neighbor of the of a given cell
 * A					Place pattern
 * ESC					Main Menu
 
-###RUNNING MODE
+### RUNNING MODE
 * ] (Right Bracket)	Increase Speed
 * [ (Left Bracket)	Decrease Speed
 * P					Pause (enter paused mode)
 * ESC					Exit to Menu
 
-###PLACE MODE
+### PLACE MODE
 * Spacebar			Place Pattern
 * Left-Click			Place Pattern
 * Enter/Return		Place Pattern
@@ -95,7 +95,7 @@ Each cell has a set of genes. Any cell born as a neighbor of the of a given cell
 * [ (Left Bracket)	Rotate Left
 * A, ESC				Exit Place Mode
 
-###EDIT MODE
+### EDIT MODE
 * Spacebar			Toggle Cell
 * Left-Click			Toggle Cell
 * A					Place pattern
