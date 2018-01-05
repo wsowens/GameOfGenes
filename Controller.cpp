@@ -63,7 +63,15 @@ Controller::Controller(SDL_Window * window)
     state = MENU;
 
 	//TODO: move this into the controller
-	this->mainFont = TTF_OpenFont("./assets/consola.ttf", 16);
+	try
+	{
+		this->mainFont = TTF_OpenFont("./font/UbuntuMono-Bold.ttf", 16);
+	}
+	catch (const char** ex)
+	{
+		std::cerr << ex << std::endl;
+		std::cerr << "Error. Font cannot be found." << std::endl;
+	}
 }
 
 Controller::~Controller()
@@ -104,7 +112,7 @@ void Controller::createNewBoard(std::string filename)
         board = NULL;
     }
     //May throw an error if the file does not exist
-    board = new Board("boards" + separator() + filename);
+    board = new Board("saved" + separator() + filename);
 	resetZoom();
 	clearScreen();
 	renderStatusPanel();
@@ -479,12 +487,12 @@ void Controller::saveCurrent()
         //so the file should be saved to the pattern folder
         if(state == EDITING)
         {
-            filename = "patterns" + separator() + filename;
+            filename = "saved" + separator() + filename;
         }
         //Otherwise, save it to the board folder
         else
         {
-            filename = "boards" + separator() + filename;
+            filename = "saved" + separator() + filename;
         }
 		if (!endsWith(filename, ".brd"))
 			filename += ".brd";
@@ -1047,7 +1055,7 @@ void Controller::pausedMode()
 						Pattern * pattern = nullptr;
 						try
 						{
-							pattern = new Pattern("patterns/" + patternFilename);
+							pattern = new Pattern("saved/" + patternFilename);
 							if (pattern->getHeight() > board->getHeight() || pattern->getWidth() > board->getWidth())
 							{
 								throw "Pattern is too big!";
