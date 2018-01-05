@@ -10,6 +10,7 @@ The following flavors are available for each version:
 * Windows 32-bit [RELEASE NAME]/win32
 * Windows 64-bit [RELEASE NAME]/win64
 * Linux 64-bit   [RELEASE NAME]/linux
+
 As of writing, the Linux version is not thoroughly tested. For anyone having difficulties, compiling on Linux is relatively straightforward (see section below).
 If for some reason you are having difficulties with the SDL runtime, you can re-download the .DLLs here: [https://www.libsdl.org/download-2.0.php]
 
@@ -50,47 +51,6 @@ To begin with, there are several hundred .rle files from the [Life Wiki](http://
 
 At any point, press "H" with a board/pattern open to a help menu with the controls.
 
-## Controls
-GENERAL CONTROLS
-+, =				Zoom in
--					Zoom out
-Arrow Keys			Move Cursor / Pan Camera
-Scrollwheel 		Zoom in / Out
-Right-Click			Pan Camera
-R					Reset Zoom
-H					Show Help Menu
- 
-PAUSED MODE
-Spacebar			Toggle Cell
-Left-Click			Toggle Cell
-Enter/Return		Perform One Iteration
-] (Right Bracket)	Increase Speed
-[ (Left Bracket)	Decrease Speed
-Left-Click			Toggle Cell
-P					Play (enter running mode)
-A					Place pattern
-ESC					Main Menu
-
-RUNNING MODE
-] (Right Bracket)	Increase Speed
-[ (Left Bracket)	Decrease Speed
-P					Pause (enter paused mode)
-ESC					Exit to Menu
-
-PLACE MODE
-Spacebar			Place Pattern
-Left-Click			Place Pattern
-Enter/Return		Place Pattern
-] (Right Bracket)	Rotate Right
-[ (Left Bracket)	Rotate Left
-A, ESC				Exit Place Mode
-
-EDIT MODE
-Spacebar			Toggle Cell
-Left-Click			Toggle Cell
-A					Place pattern
-ESC					Main Menu
-
 ### "Classic Mode"
 "Classic mode" works on the standard rules of the original game of life by John Conway. (Cells with 3 neighbors are born, cells with exactly 2 or 3 neighbors survive.)
 
@@ -99,6 +59,47 @@ There are a number of different cells, each with the same properties.
 
 ### "Genetic Mode" (Coming Soon)
 Each cell has a set of genes. Any cell born as a neighbor of the of a given cell may inherit some of that cell's genes. 
+
+## Controls
+###GENERAL CONTROLS
+* +, =				Zoom in
+* -					Zoom out
+* Arrow Keys			Move Cursor / Pan Camera
+* Scrollwheel 		Zoom in / Out
+* Right-Click			Pan Camera
+* R					Reset Zoom
+* H					Show Help Menu
+ 
+###PAUSED MODE
+* Spacebar			Toggle Cell
+* Left-Click			Toggle Cell
+* Enter/Return		Perform One Iteration
+* ] (Right Bracket)	Increase Speed
+* [ (Left Bracket)	Decrease Speed
+* Left-Click			Toggle Cell
+* P					Play (enter running mode)
+* A					Place pattern
+* ESC					Main Menu
+
+###RUNNING MODE
+* ] (Right Bracket)	Increase Speed
+* [ (Left Bracket)	Decrease Speed
+* P					Pause (enter paused mode)
+* ESC					Exit to Menu
+
+###PLACE MODE
+* Spacebar			Place Pattern
+* Left-Click			Place Pattern
+* Enter/Return		Place Pattern
+* ] (Right Bracket)	Rotate Right
+* [ (Left Bracket)	Rotate Left
+* A, ESC				Exit Place Mode
+
+###EDIT MODE
+* Spacebar			Toggle Cell
+* Left-Click			Toggle Cell
+* A					Place pattern
+* ESC					Main Menu
 
 ## Credits
 Thank you to John Conway, whose work spans many areas beyond the game that bears his name.
