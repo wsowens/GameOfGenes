@@ -1,33 +1,41 @@
-#Copyright Notice:
-#The files within this zip file are copyrighted by Lazy Foo' Productions (2004-2014)
-#and may not be redistributed without written permission.
-
 #OBJS specifies which files to compile as part of the project
-OBJS = GameOfLife.cpp Controller.cpp Board.cpp Util.cpp Formats.cpp Pattern.cpp ButtonBox.cpp Button.cpp
+OBJS = GameOfLife.cpp Controller.cpp Board.cpp Util.cpp Formats.cpp Pattern.cpp ButtonBox.cpp Button.cpp TextBox.cpp GridBox.cpp
 
-#CC specifies which compiler we're using
-CC = x86_64-w64-mingw32-g++
+#The different compilers used. Change these to the appropriate paths as you need. 
+Win64_Compiler = x86_64-w64-mingw32-g++
+Win32_Compiler = i686-w64-mingw32-g++
+Linux_Compiler = g++
 
-#INCLUDE_PATHS specifies the additional include paths we'll need
-INCLUDE_PATHS = -IC:/usr/x86_64-w64-mingw32/include/SDL2
+#the following paths were used on my system, you may need to change this for your purposes
+INCLUDE_W64 = -IC:/usr/x86_64-w64-mingw32/include/SDL2
+INCLUDE_W32 = -IC:/usr/i686-w64-mingw32/include/SDL2
+INCLUDE_LINUX =
 
 #LIBRARY_PATHS specifies the additional library paths we'll need
-LIBRARY_PATHS = -LC:/usr/x86_64-w64-mingw32/lib
+LIBRARY_W64 = -LC:/usr/x86_64-w64-mingw32/lib
+LIBRARY_W32 = -LC:/usr/i686-w64-mingw32/include/SDL2 
+LIBRARY_LINUX =
 
-#COMPILER_FLAGS specifies the additional compilation options we're using
-# -w suppresses all warnings
-# -Wl,-subsystem,windows gets rid of the console window
-COMPILER_FLAGS = -w -static-libgcc -static-libstdc++ -std=c++11
+#COMPILER FLAGS 
+# -Wl,-subsystem,windows removes console window 
+# -static-libgcc and -static-libstdc++ statically link the standard c and C++ libraries on windows
+# -source uses many C++11 features, thus -std=c++11
+WIN_CF = -Wl,-subsystem,windows -static-libgcc -static-libstdc++ -std=c++11
+LINUX_CF = -std=c++11
 
 #LINKER_FLAGS specifies the libraries we're linking against
-LINKER_FLAGS = -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf
+LINKER_FLAGS = -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf
 
-#OBJ_NAME specifies the name of our exectuable
-OBJ_NAME = ./64bit/main.exe
+#OUTPUT:: make whatever you want
+OUTPUT = ./GameOfGames.exe
 
-#This is the target that compiles our executable
-all : $(OBJS)
-	$(CC) -o $(OBJ_NAME) $(OBJS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) $(COMPILER_FLAGS) $(LINKER_FLAGS)
+#For users compiling on Windows without mingw32, remove the -lmingw32 flag
+WIN64 : $(OBJS)
+	$(Win64_Compiler) -o $(OUTPUT) $(OBJS) $(INCLUDE_W64) $(LIBRARY_W64) $(WIN_CF) -lmingw32 $(LINKER_FLAGS)
 
-board:
-	$(CC) -o ./64bit/board.exe Board.cpp Formats.cpp Util.cpp $(INCLUDE_PATHS) $(LIBRARY_PATHS) $(COMPILER_FLAGS) $(LINKER_FLAGS)
+WIN32 : $(OBJS)
+	$(Win32_Compiler) -o $(OUTPUT) $(OBJS) $(INCLUDE_W32) $(LIBRARY_W32) $(WIN_CF) -lmingw32 $(LINKER_FLAGS)
+
+LINUX : $(OBJS)
+	$(Linux_Compiler) -o $(OUTPUT) $(OBJS) $(LINUX_CF) $(LINKER_FLAGS)
+
