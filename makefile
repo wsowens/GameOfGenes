@@ -27,7 +27,7 @@ LINUX_CF = -std=c++11
 LINKER_FLAGS = -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf
 
 #OUTPUT:: make whatever you want
-OUTPUT = ./GameOfGames.exe
+OUTPUT = ./GameOfGenes.exe
 
 #For users compiling on Windows without mingw32, remove the -lmingw32 flag
 WIN64 : $(OBJS)
