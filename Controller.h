@@ -123,6 +123,9 @@ class Controller
 		void updateScreen();
 		void clearScreen();
 		void renderBoard();
+		//instead of keeping track of the old cursor, we can just make a method
+		void derenderCursor();
+		void renderCursor();
 		void renderStatusPanel();
 
 		//CONTROL LOOP METHODS

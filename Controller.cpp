@@ -679,9 +679,16 @@ void Controller::resetZoom()
 
 void Controller::updateRC(int x, int y)
 {
-	//TODO: obviously, make the cell height a data field... this will let you control zoom
 	this->currentCol = (x - boardPanel.x - boardPosition.x) / cellWidth;
 	this->currentRow = (y - boardPanel.y - boardPosition.y) / cellHeight;
+	if (currentRow < 0)
+		currentRow = 0;
+	else if (currentRow > board->getHeight() - 1)
+		currentRow = board->getHeight() - 1;
+	if (currentCol < 0)
+		currentCol = 0;
+	else if (currentCol > board->getWidth() - 1)
+		currentCol = board->getWidth() - 1;
 }
 
 void Controller::checkRC()
@@ -734,9 +741,11 @@ void Controller::clearScreen()
 void Controller::renderBoard(SDL_Rect * renderArea)
 {
 	std::cerr << "render board called\n";
-	SDL_Color * cellColor = NULL;
+	//SDL_Color * cellColor = NULL;
 	std::vector<std::vector<bool>> matrix = board->getMatrix();
 
+	//changing the color
+	SDL_SetRenderDrawColor(mainRenderer, mainColor.r, mainColor.g, mainColor.b, mainColor.a);
 	for (int row = 0; row < board->getHeight(); row++)
 	{
 		for (int column = 0; column < board->getWidth(); column++)
@@ -745,25 +754,24 @@ void Controller::renderBoard(SDL_Rect * renderArea)
 			int x = renderArea->x + cellWidth * column + boardPosition.x;
 			SDL_Rect cellRect = {x, y, cellWidth, cellHeight};
 
-			cellColor = &this->mainColor;
 			//TODO: make this render a nice box around the cell instead of just changing the color
+			/*
 			if (this->currentRow == row && this->currentCol == column && (getState() == EDITING || getState() == PAUSED))
 			{
 				SDL_SetRenderDrawColor(mainRenderer, accentColor.r, accentColor.g, accentColor.b, 0xFF);
 				SDL_RenderFillRect(mainRenderer, &cellRect);
-			}
+			}*/
 			if (!matrix[row][column])
 			{
-				cellColor = &this->bgColor;
+				continue;
 			}
-			SDL_SetRenderDrawColor(mainRenderer, cellColor->r, cellColor->g, cellColor->b, cellColor->a);
-			bool filled = false;
-			if (!filled)
+			int borderSize = 1;
+			if (borderSize > 0)
 			{
-				cellRect.x++;
-				cellRect.y++;
-				cellRect.w -= 2;
-				cellRect.h -= 2;
+				cellRect.x += borderSize;
+				cellRect.y += borderSize;
+				cellRect.w -= borderSize * 2;
+				cellRect.h -= borderSize * 2;
 			}
 			SDL_RenderFillRect(mainRenderer, &cellRect);
 		}
@@ -771,7 +779,7 @@ void Controller::renderBoard(SDL_Rect * renderArea)
 	if (getState() != MENU)
 	{
 		SDL_SetRenderDrawColor(mainRenderer, accentColor.r, accentColor.g, accentColor.b, 0xFF);
-		SDL_Rect boundingBox = {boardPosition.x, boardPosition.y, cellWidth * board->getWidth(), cellHeight * board->getHeight()};
+		SDL_Rect boundingBox = {boardPosition.x - 1, boardPosition.y - 1, cellWidth * board->getWidth() + 2, cellHeight * board->getHeight() + 2};
 		SDL_RenderDrawRect(mainRenderer, &boundingBox);
 	}
 	SDL_SetRenderDrawColor(mainRenderer, bgColor.r, bgColor.g, bgColor.b, 0xFF);
@@ -780,6 +788,36 @@ void Controller::renderBoard(SDL_Rect * renderArea)
 void Controller::renderBoard()
 {
 	renderBoard(&boardPanel);
+}
+
+void Controller::derenderCursor()
+{
+	std::cerr << "derendering cursor\n";
+	//color assumed to be background color already
+	int y = boardPanel.y + cellHeight * currentRow + boardPosition.y;
+	int x = boardPanel.x + cellWidth * currentCol + boardPosition.x;
+	//special status panel case
+	if (y + cellHeight > (boardPanel.y + boardPanel.h))
+		return;
+	SDL_Rect cursorRect = {x, y, cellWidth, cellHeight};
+	SDL_RenderDrawRect(mainRenderer, &cursorRect);
+}
+
+void Controller::renderCursor()
+{
+	std::cerr << "rendering cursor\n";
+	int y = boardPanel.y + cellHeight * currentRow + boardPosition.y;
+	int x = boardPanel.x + cellWidth * currentCol + boardPosition.x;
+	SDL_Rect cursorRect = {x, y, cellWidth, cellHeight};
+	if (y + cellHeight > (boardPanel.y + boardPanel.h))
+		return;
+
+	SDL_SetRenderDrawColor(mainRenderer, accentColor.r, accentColor.g, accentColor.b, 0xFF);
+	SDL_RenderDrawRect(mainRenderer, &cursorRect);
+	SDL_SetRenderDrawColor(mainRenderer, bgColor.r, bgColor.g, bgColor.b, 0xFF);
+	//TODO: make this a thicc box that covers the entire border...
+	//do this after updating the borderSize variable in renderBoard()
+
 }
 
 //TODO: rewrite this, make all the text static members, update only the number
@@ -939,8 +977,10 @@ void Controller::pausedMode()
 {
 	int x = 0, y = 0;
 	SDL_GetMouseState(&x, &y);
+	derenderCursor();
 	updateRC(x, y);
 	bool doRenderUpdate = true;
+	bool doCursorUpdate = true;
 	bool doPan = false;
 	//TODO: enable clicking and dragging cells
 	//bool placeCell;
@@ -948,7 +988,7 @@ void Controller::pausedMode()
     {
 		while (SDL_PollEvent(&event) != 0)
 		{
-			doRenderUpdate = true;
+
 			switch(this->event.type)
 			{
 				case SDL_QUIT:
@@ -966,15 +1006,25 @@ void Controller::pausedMode()
 					{
 						doPan = false;
 					}
-					//flow into mouse motion case
+					SDL_GetMouseState(&x, &y);
+					derenderCursor();
+					updateRC(x, y);
+					doCursorUpdate = true;
+					doRenderUpdate = true;
+					break;
+
 				case SDL_MOUSEMOTION:
 					SDL_GetMouseState(&x, &y);
+					derenderCursor();
 					updateRC(x, y);
+					doCursorUpdate = true;
 					break;
 
 				case SDL_MOUSEBUTTONDOWN:
 					SDL_GetMouseState(&x, &y);
+					derenderCursor();
 					updateRC(x, y);
+					doCursorUpdate = true;
 					if (event.button.button == SDL_BUTTON_LEFT)
 					{
 						this->board->toggle(this->currentRow, this->currentCol);
@@ -983,41 +1033,69 @@ void Controller::pausedMode()
 					{
 						doPan = true;
 					}
+					doRenderUpdate = true;
 					break;
 
 				case SDL_MOUSEWHEEL:
+					derenderCursor();
+					updateRC(x, y);
 					setZoom(event.wheel.y);
+					doCursorUpdate = true;
+					doRenderUpdate = true;
+					break;
 
 				case SDL_KEYDOWN:
 				switch(this->event.key.keysym.sym)
 				{
 					case SDLK_UP:
+						derenderCursor();
 						this->currentRow--;
 						checkRC();
+						doCursorUpdate = true;
+						//check that the cursor is in range, if not, re-render
+						if (currentRow < (boardPanel.y - boardPosition.y) / cellHeight + 1)
+							doRenderUpdate = true;
 						break;
 
 					case SDLK_DOWN:
+						derenderCursor();
 						this->currentRow++;
 						checkRC();
+						doCursorUpdate = true;
+						//check that the cursor is in range, if not, re-render
+						if (currentRow > (boardPanel.y + boardPanel.h - boardPosition.y) / cellHeight - 2)
+							doRenderUpdate = true;
 						break;
 
 					case SDLK_LEFT:
+						derenderCursor();
 						this->currentCol--;
 						checkRC();
+						doCursorUpdate = true;
+						//check that the cursor is in range, if not, re-render
+						if (currentCol < (boardPanel.x - boardPosition.x) / cellWidth + 1)
+							doRenderUpdate = true;
 						break;
 
 					case SDLK_RIGHT:
+						derenderCursor();
 						this->currentCol++;
 						checkRC();
+						doCursorUpdate = true;
+						//check that the cursor is in range, if not, re-render
+						if (currentCol > (boardPanel.x + boardPanel.w - boardPosition.x) / cellWidth - 2)
+							doRenderUpdate = true;
 						break;
 
 					case SDLK_SPACE:
 						this->board->toggle(this->currentRow, this->currentCol);
+						doRenderUpdate = true;
 						break;
 
 					case SDLK_KP_ENTER:
 					case SDLK_RETURN:
 						runIteration();
+						doRenderUpdate = true;
 						break;
 
 					case SDLK_RIGHTBRACKET:
@@ -1031,16 +1109,25 @@ void Controller::pausedMode()
 					case SDLK_KP_PLUS:
 					case SDLK_PLUS:
 					case SDLK_EQUALS:
+						derenderCursor();
 						setZoom(1);
+						doCursorUpdate = true;
+						doRenderUpdate = true;
 						break;
 
 					case SDLK_KP_MINUS:
 					case SDLK_MINUS:
+						derenderCursor();
 						setZoom(-1);
+						doCursorUpdate = true;
+						doRenderUpdate = true;
 						break;
 
 					case SDLK_r:
+						derenderCursor();
 						resetZoom();
+						doCursorUpdate = true;
+						doRenderUpdate = true;
 						break;
 
 					case SDLK_h:
@@ -1092,9 +1179,14 @@ void Controller::pausedMode()
 			clearScreen();
 			renderBoard();
 			renderStatusPanel();
-			updateScreen();
-			doRenderUpdate = false;
 		}
+		if (doRenderUpdate || doCursorUpdate)
+		{
+			renderCursor();
+			updateScreen();
+		}
+		doRenderUpdate = false;
+		doCursorUpdate = false;
 	}
 }
 
@@ -1102,6 +1194,7 @@ void Controller::runningMode()
 {
 	int x = 0, y = 0;
 	SDL_GetMouseState(&x, &y);
+	derenderCursor();
 	updateRC(x, y);
 	bool doPan = false;
     while(getState() == RUNNING)
@@ -1221,6 +1314,7 @@ void Controller::runningMode()
 
 void Controller::placeMode(Pattern pattern)
 {
+	derenderCursor();
 	std::cerr << "place mode entered\n";
 	int x, y;
 	bool doPan = false;
@@ -1245,11 +1339,13 @@ void Controller::placeMode(Pattern pattern)
 					}
 				case SDL_MOUSEMOTION:
 				SDL_GetMouseState(&x, &y);
+				derenderCursor();
 				updateRC(x, y);
 				break;
 
 				case SDL_MOUSEBUTTONDOWN:
 				SDL_GetMouseState(&x, &y);
+				derenderCursor();
 				updateRC(x, y);
 					if (event.button.button == SDL_BUTTON_LEFT)
 					{
@@ -1268,11 +1364,13 @@ void Controller::placeMode(Pattern pattern)
 					switch(this->event.key.keysym.sym)
 					{
 						case SDLK_UP:
+							derenderCursor();
 							this->currentRow--;
 							checkRC();
 							break;
 
 						case SDLK_DOWN:
+							derenderCursor();
 							this->currentRow++;
 							checkRC();
 							break;
@@ -1283,6 +1381,7 @@ void Controller::placeMode(Pattern pattern)
 							break;
 
 						case SDLK_RIGHT:
+							derenderCursor();
 							this->currentCol++;
 							checkRC();
 							break;
@@ -1329,7 +1428,7 @@ void Controller::placeMode(Pattern pattern)
 				}
 	        }
 		}
-
+		//TODO add a derenderpattern?
 		if (doPan)
 		{
 			setPan(x, y);
@@ -1350,8 +1449,10 @@ void Controller::editorMode()
 {
 	int x = 0, y = 0;
 	SDL_GetMouseState(&x, &y);
+	derenderCursor();
 	updateRC(x, y);
 	bool doRenderUpdate = true;
+	bool doCursorUpdate = true;
 	bool doPan = false;
 	//TODO: enable clicking and dragging cells
 	//bool placeCell;
@@ -1359,7 +1460,7 @@ void Controller::editorMode()
     {
 		while (SDL_PollEvent(&event) != 0)
 		{
-			doRenderUpdate = true;
+
 			switch(this->event.type)
 			{
 				case SDL_QUIT:
@@ -1377,15 +1478,24 @@ void Controller::editorMode()
 					{
 						doPan = false;
 					}
-					//flow into mouse motion case
+					SDL_GetMouseState(&x, &y);
+					derenderCursor();
+					updateRC(x, y);
+					doCursorUpdate = true;
+					break;
 				case SDL_MOUSEMOTION:
 					SDL_GetMouseState(&x, &y);
+					derenderCursor();
 					updateRC(x, y);
+					doCursorUpdate = true;
 					break;
 
 				case SDL_MOUSEBUTTONDOWN:
 					SDL_GetMouseState(&x, &y);
+					derenderCursor();
 					updateRC(x, y);
+					doRenderUpdate = true;
+					doCursorUpdate = true;
 					if (event.button.button == SDL_BUTTON_LEFT)
 					{
 						this->board->toggle(this->currentRow, this->currentCol);
@@ -1397,44 +1507,86 @@ void Controller::editorMode()
 					break;
 
 				case SDL_MOUSEWHEEL:
+					derenderCursor();
+					updateRC(x, y);
 					setZoom(event.wheel.y);
+					doCursorUpdate = true;
+					doRenderUpdate = true;
+					break;
 
 				case SDL_KEYDOWN:
 				switch(this->event.key.keysym.sym)
 				{
 					case SDLK_UP:
+						derenderCursor();
 						this->currentRow--;
 						checkRC();
+						doCursorUpdate = true;
+						//check that the cursor is in range, if not, re-render
+						if (currentRow < (boardPanel.y - boardPosition.y) / cellHeight + 1)
+							doRenderUpdate = true;
 						break;
 
 					case SDLK_DOWN:
+						derenderCursor();
 						this->currentRow++;
 						checkRC();
+						doCursorUpdate = true;
+						//check that the cursor is in range, if not, re-render
+						if (currentRow > (boardPanel.y + boardPanel.h - boardPosition.y) / cellHeight - 2)
+							doRenderUpdate = true;
 						break;
 
 					case SDLK_LEFT:
+						derenderCursor();
 						this->currentCol--;
 						checkRC();
+						doCursorUpdate = true;
+						//check that the cursor is in range, if not, re-render
+						if (currentCol < (boardPanel.x - boardPosition.x) / cellWidth + 1)
+							doRenderUpdate = true;
 						break;
 
 					case SDLK_RIGHT:
+						derenderCursor();
 						this->currentCol++;
 						checkRC();
+						doCursorUpdate = true;
+						//check that the cursor is in range, if not, re-render
+						if (currentCol > (boardPanel.x + boardPanel.w - boardPosition.x) / cellWidth - 2)
+							doRenderUpdate = true;
+						break;
+
+					case SDLK_SPACE:
+						this->board->toggle(this->currentRow, this->currentCol);
+						doRenderUpdate = true;
 						break;
 
 					case SDLK_KP_PLUS:
 					case SDLK_PLUS:
 					case SDLK_EQUALS:
+						derenderCursor();
 						setZoom(1);
+						renderCursor();
+						doCursorUpdate = true;
+						doRenderUpdate = true;
 						break;
 
 					case SDLK_KP_MINUS:
 					case SDLK_MINUS:
+						derenderCursor();
 						setZoom(-1);
+						renderCursor();
+						doCursorUpdate = true;
+						doRenderUpdate = true;
 						break;
 
 					case SDLK_r:
+						derenderCursor();
 						resetZoom();
+						renderCursor();
+						doCursorUpdate = true;
+						doRenderUpdate = true;
 						break;
 
 					case SDLK_h:
@@ -1484,8 +1636,13 @@ void Controller::editorMode()
 			clearScreen();
 			renderBoard();
 			renderStatusPanel();
-			updateScreen();
-			doRenderUpdate = false;
 		}
+		if (doCursorUpdate || doRenderUpdate)
+		{
+			renderCursor();
+			updateScreen();
+		}
+		doCursorUpdate = false;
+		doRenderUpdate = false;
 	}
 }

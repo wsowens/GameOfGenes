@@ -41,7 +41,7 @@ Upon start up, the a main menu is displayed. The following options are available
 * Load Saved Board:			Load a saved board from [Game Of Genes]/saved
 * Create Random Board:		Create a randomized board (i.e. Each cell will be randomly turned on or off according to a proportion provided by the user.
 * Enter Pattern Editor:		Enters the pattern editor. The pattern editor is essentially the same as a board editor, except the user cannot run any iterations. It is used exclusively for making patterns to load into other boards.
-* Exit						Closes the program.
+* Exit:						Closes the program.
 
 Note: that sometimes the user may be prompted asking if they "want to enable wraparound". Wraparound means that cells at the edges of the board touch one another.
 
