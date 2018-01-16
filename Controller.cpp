@@ -732,23 +732,29 @@ void Controller::clearScreen()
 	SDL_RenderClear(mainRenderer);
 }
 
-
-//TODO OPTIMIZE THIS FUNCTION FOR LARGER BOARDS
-/*
-	render only the on screen parts
-	seperate the rendering of the cursor and the rendering of the cells
-*/
+//still slow, likely due to the massive sizes
 void Controller::renderBoard(SDL_Rect * renderArea)
 {
 	std::cerr << "render board called\n";
-	//SDL_Color * cellColor = NULL;
 	std::vector<std::vector<bool>> matrix = board->getMatrix();
 
+	//adjust the boundaries?
+	int minRow = (renderArea->y - boardPosition.y) / cellHeight;
+	int maxRow = (renderArea->y + renderArea->h - boardPosition.y) / cellHeight + 1;
+	int minCol = (renderArea->x - boardPosition.x) / cellWidth;
+	int maxCol = (renderArea->x + renderArea->w - boardPosition.x) / cellWidth + 1;
+
+	minRow = (minRow > 0) ? minRow : 0;
+	maxRow = (maxRow < board->getHeight()) ? maxRow : board->getHeight();
+	minCol = (minCol > 0) ? minCol : 0;
+	maxCol = (maxCol < board->getWidth()) ? maxCol : board->getWidth();
 	//changing the color
+	std::cerr << minRow << "," << maxRow << ";" << minCol << "," << maxCol << std::endl;
 	SDL_SetRenderDrawColor(mainRenderer, mainColor.r, mainColor.g, mainColor.b, mainColor.a);
-	for (int row = 0; row < board->getHeight(); row++)
+	int cellCount = 0, totalCount = 0;
+	for (int row = minRow; row < maxRow; row++)
 	{
-		for (int column = 0; column < board->getWidth(); column++)
+		for (int column = minCol; column < maxCol; column++)
 		{
 			int y = renderArea->y + cellHeight * row + boardPosition.y;
 			int x = renderArea->x + cellWidth * column + boardPosition.x;
@@ -763,6 +769,7 @@ void Controller::renderBoard(SDL_Rect * renderArea)
 			}*/
 			if (!matrix[row][column])
 			{
+				totalCount++;
 				continue;
 			}
 			int borderSize = 1;
@@ -774,8 +781,11 @@ void Controller::renderBoard(SDL_Rect * renderArea)
 				cellRect.h -= borderSize * 2;
 			}
 			SDL_RenderFillRect(mainRenderer, &cellRect);
+			cellCount++;
+			totalCount++;
 		}
 	}
+	std::cerr << "Cell Count: " << cellCount << "Total Count" << totalCount << std::endl;
 	if (getState() != MENU)
 	{
 		SDL_SetRenderDrawColor(mainRenderer, accentColor.r, accentColor.g, accentColor.b, 0xFF);
@@ -792,7 +802,6 @@ void Controller::renderBoard()
 
 void Controller::derenderCursor()
 {
-	std::cerr << "derendering cursor\n";
 	//color assumed to be background color already
 	int y = boardPanel.y + cellHeight * currentRow + boardPosition.y;
 	int x = boardPanel.x + cellWidth * currentCol + boardPosition.x;
@@ -805,7 +814,6 @@ void Controller::derenderCursor()
 
 void Controller::renderCursor()
 {
-	std::cerr << "rendering cursor\n";
 	int y = boardPanel.y + cellHeight * currentRow + boardPosition.y;
 	int x = boardPanel.x + cellWidth * currentCol + boardPosition.x;
 	SDL_Rect cursorRect = {x, y, cellWidth, cellHeight};
@@ -1159,6 +1167,9 @@ void Controller::pausedMode()
 						delete pattern;
 						break;
 					}
+					case SDLK_BACKQUOTE:
+						std::cerr << currentRow << "," << currentCol << std::endl;
+						break;
 					case SDLK_p:
 						setState(RUNNING);
 						break;
